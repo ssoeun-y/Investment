@@ -1,0 +1,75 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.title {
+  color: #333;
+  font-size: 2.5em;
+}
+
+.main {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.loader {
+  text-align: center;
+  font-size: 1.2em;
+  color: #666;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcomeMessage, .loginMessage {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.kakaoLoginButton, .logoutButton {
+  padding: 10px 20px;
+  font-size: 1em;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.kakaoLoginButton {
+  background-color: #FEE500;
+  color: #000;
+}
+
+.kakaoLoginButton:hover {
+  background-color: #FAD000;
+}
+
+.logoutButton {
+  background-color: #f44336;
+  color: white;
+}
+
+.logoutButton:hover {
+  background-color: #d32f2f;
+}
+
+.footer {
+  margin-top: 40px;
+  text-align: center;
+  color: #666;
+  font-size: 0.9em;
+}
