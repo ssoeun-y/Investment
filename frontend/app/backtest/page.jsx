@@ -5,7 +5,7 @@ import { useMarketData } from '../hooks/useMarketData';
 const pct = n => n == null ? '--' : (n >= 0 ? '+' : '') + Number(n).toFixed(2) + '%';
 const cl  = n => n == null ? 'var(--muted)' : n >= 0 ? '#10d9a0' : '#f05a5a';
 
-// ─── 기술 지표 계산 ──────────────────────────────────────
+// 기술 지표 계산 부분
 const calcRSI = (prices, period = 14) => {
     const result = new Array(prices.length).fill(null);
     let avgGain = 0, avgLoss = 0;
@@ -45,7 +45,6 @@ const calcEMA = (prices, period) => {
 function evaluateCondition(cond, i, prices, indicators) {
     const { type, op, value, short, long, period } = cond;
     if (type === 'RSI') {
-        // period별로 정확히 찾기
         const rsiArr = indicators[`rsi_${period ?? 14}`];
         const rsiVal = rsiArr?.[i];
         if (rsiVal == null) return false;
@@ -74,19 +73,19 @@ function evaluateConditions(conditions, logic, i, prices, indicators) {
     return false;
 }
 
-// ─── 백테스트 엔진 ───────────────────────────────────────
+
 function runBacktest(prices, timestamps, strategy) {
     const { buyConditions, buyLogic, sellConditions, sellLogic, risk } = strategy;
     const { fee, stopLoss, takeProfit, positionSize } = risk;
 
-    // 지표 사전 계산
+
     const indicators = {};
     const allConds   = [...buyConditions, ...sellConditions];
     const rsiPeriods = [...new Set(allConds.filter(c => c.type === 'RSI').map(c => c.period ?? 14))];
     const maPairs    = allConds.filter(c => c.type === 'MA_CROSS');
 
     rsiPeriods.forEach(p => { indicators[`rsi_${p}`] = calcRSI(prices, p); });
-    // 기본 rsi 참조 편의
+
     if (rsiPeriods.length > 0) indicators.rsi = indicators[`rsi_${rsiPeriods[0]}`];
 
     maPairs.forEach(c => {
@@ -106,7 +105,7 @@ function runBacktest(prices, timestamps, strategy) {
         equity.push({ ts: timestamps[i], value: currentValue });
         holdEquity.push({ ts: timestamps[i], value: 1000000 * (price / initPrice) });
 
-        // 손절/익절 체크
+
         if (holding > 0 && buyPrice > 0) {
             const unrealized = ((price - buyPrice) / buyPrice) * 100;
             if ((stopLoss   && unrealized <= -Math.abs(stopLoss)) ||
@@ -172,7 +171,7 @@ function runBacktest(prices, timestamps, strategy) {
     return { totalReturn, holdReturn, winRate, mdd, tradeCount: trades.length, trades, equity, holdEquity, finalValue, avgWin, avgLoss: avgLoss_, profitFactor, sharpe };
 }
 
-// ─── 차트 렌더링 ─────────────────────────────────────────
+// 차트 렌더링 부분
 function renderEquityChart(equity, holdEquity) {
     const ctx = document.getElementById('backtestEquityChart');
     if (!ctx || !window.Chart) return;
@@ -207,11 +206,11 @@ function renderEquityChart(equity, holdEquity) {
     });
 }
 
-// ─── 기본 전략 ───────────────────────────────────────────
+
 const defaultBuyConditions  = [{ id: 1, type: 'RSI', op: '<', value: 30, period: 14 }];
 const defaultSellConditions = [{ id: 2, type: 'RSI', op: '>', value: 70, period: 14 }];
 
-// ─── 컴포넌트 ─────────────────────────────────────────────
+
 export default function BacktestPage() {
     const { fetchCrossMarketHistory } = useMarketData();
 
@@ -220,7 +219,7 @@ export default function BacktestPage() {
     const [buyLogic,       setBuyLogic]       = useState('AND');
     const [sellLogic,      setSellLogic]      = useState('OR');
 
-    // 리스크 설정
+    // 리스크 설정부분
     const [fee,          setFee]          = useState(0.05);
     const [stopLoss,     setStopLoss]     = useState(3);
     const [takeProfit,   setTakeProfit]   = useState(5);
@@ -298,7 +297,7 @@ export default function BacktestPage() {
 
     const ConditionRow = ({ cond, side }) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8 }}>
-            {/* 지표 타입 */}
+
             <select value={cond.type} onChange={e => updateCondition(side, cond.id, 'type', e.target.value)}
                 style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: 12, cursor: 'pointer' }}>
                 <option value="RSI">RSI</option>
@@ -306,7 +305,7 @@ export default function BacktestPage() {
                 <option value="PRICE">가격</option>
             </select>
 
-            {/* RSI 설정 */}
+
             {cond.type === 'RSI' && (<>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>기간</span>
                 <select value={cond.period ?? 14} onChange={e => updateCondition(side, cond.id, 'period', Number(e.target.value))}
@@ -326,7 +325,7 @@ export default function BacktestPage() {
                 </span>
             </>)}
 
-            {/* MA 크로스 설정 */}
+
             {cond.type === 'MA_CROSS' && (<>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>단기</span>
                 <select value={cond.short ?? 7} onChange={e => updateCondition(side, cond.id, 'short', Number(e.target.value))}
@@ -348,7 +347,7 @@ export default function BacktestPage() {
                 </span>
             </>)}
 
-            {/* 가격 설정 */}
+
             {cond.type === 'PRICE' && (<>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>가격</span>
                 <select value={cond.op} onChange={e => updateCondition(side, cond.id, 'op', e.target.value)}
@@ -361,7 +360,7 @@ export default function BacktestPage() {
                     style={{ width: 120, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'var(--text)', fontSize: 12 }} />
             </>)}
 
-            {/* 삭제 버튼 */}
+
             <button onClick={() => removeCondition(side, cond.id)} style={{
                 marginLeft: 'auto', padding: '4px 8px', borderRadius: 4, border: 'none',
                 background: '#f05a5a18', color: '#f05a5a', fontSize: 11, cursor: 'pointer',
@@ -384,13 +383,13 @@ export default function BacktestPage() {
     return (
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1200 }}>
 
-            {/* 타이틀 */}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>💼 Strategy Lab</h2>
                 <span className="card-badge badge-purple">백테스팅</span>
             </div>
 
-            {/* ── 전략 빌더 ── */}
+
             <div className="card">
                 <div className="card-header">
                     <span className="card-title">🧩 전략 빌더</span>
@@ -398,7 +397,7 @@ export default function BacktestPage() {
                 <div className="card-body">
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
 
-                        {/* 매수 조건 */}
+
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -436,7 +435,7 @@ export default function BacktestPage() {
                             )}
                         </div>
 
-                        {/* 매도 조건 */}
+
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -477,7 +476,7 @@ export default function BacktestPage() {
                 </div>
             </div>
 
-            {/* ── 리스크 설정 ── */}
+
             <div className="card">
                 <div className="card-header">
                     <span className="card-title">⚠️ 리스크 설정</span>
@@ -522,7 +521,7 @@ export default function BacktestPage() {
                 </div>
             </div>
 
-            {/* ── 실행 영역 ── */}
+
             <div className="card">
                 <div className="card-header">
                     <span className="card-title">▶ 실행 설정</span>
@@ -560,9 +559,9 @@ export default function BacktestPage() {
                 </div>
             </div>
 
-            {/* ── 결과 ── */}
+
             {result && (<>
-                {/* KPI */}
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                     {kpiCards.slice(0, 3).map((k, i) => (
                         <div key={i} className="card" style={{ padding: '16px 20px' }}>
@@ -588,7 +587,7 @@ export default function BacktestPage() {
                     ))}
                 </div>
 
-                {/* 수익률 그래프 */}
+
                 <div className="card">
                     <div className="card-header">
                         <span className="card-title">📈 수익률 곡선 (Equity Curve)</span>
@@ -601,7 +600,7 @@ export default function BacktestPage() {
                     </div>
                 </div>
 
-                {/* 전략 요약 */}
+
                 <div className="card">
                     <div className="card-header"><span className="card-title">📋 전략 요약</span></div>
                     <div className="card-body">
@@ -631,7 +630,7 @@ export default function BacktestPage() {
                     </div>
                 </div>
 
-                {/* 거래 로그 */}
+
                 <div className="card">
                     <div className="card-header">
                         <span className="card-title">📝 거래 로그</span>
