@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
+import java.util.stream.Collectors;
 import java.util.*;
 
 @Slf4j
@@ -22,12 +22,11 @@ public class MarketService {
     private static final String FINNHUB_URL = "https://finnhub.io/api/v1";
     private static final String UPBIT_URL = "https://api.upbit.com/v1";
 
-    // ── 메모리 캐시
     private Map<String, Object> cachedAllData = null;
     private final Map<Integer, Map<String, Object>> cachedHistory = new HashMap<>();
     private long lastAllDataTime = 0;
     private final Map<Integer, Long> lastHistoryTime = new HashMap<>();
-    private static final long CACHE_TTL = 1 * 60 * 1000; // 1분
+    private static final long CACHE_TTL = 1 * 60 * 1000;
 
     // ── 업비트 코인 현재가 (KRW)
     public Mono<List<Map<String, Object>>> getUpbitData() {
@@ -80,9 +79,8 @@ public class MarketService {
             return Mono.just(cachedHistory.get(days));
         }
 
-        // 업비트 BTC 캔들
         int count = days <= 1 ? 24 : days * 24;
-        String unit = days <= 1 ? "60" : "240"; // 1일: 60분봉, 그 이상: 240분봉
+        String unit = days <= 1 ? "60" : "240";
         String btcUrl = UPBIT_URL + "/candles/minutes/" + unit + "?market=KRW-BTC&count=" + Math.min(count, 200);
 
         Mono<List<List<Double>>> btcMono = webClientBuilder.build()
@@ -99,7 +97,6 @@ public class MarketService {
                 })
                 .collectList()
                 .map(list -> {
-                    // 업비트는 최신순으로 오므로 역순 정렬
                     List<List<Double>> sorted = new ArrayList<>(list);
                     sorted.sort(Comparator.comparingDouble(l -> l.get(0)));
                     return sorted;
@@ -181,7 +178,7 @@ public class MarketService {
         ).map(tuple -> List.of(tuple.getT1(), tuple.getT2()));
     }
 
-    // ── 전체 통합 (캐시 5분)
+    // ── 전체 통합
     public Mono<Map<String, Object>> getAllMarketData() {
         long now = System.currentTimeMillis();
         if (cachedAllData != null && (now - lastAllDataTime) < CACHE_TTL) {
@@ -197,8 +194,8 @@ public class MarketService {
                 getKrIndexData()
         ).map(tuple -> {
             Map<String, Object> all = new HashMap<>();
-            all.put("crypto",  tuple.getT1()); // 업비트 데이터
-            all.put("upbit",   tuple.getT1()); // 동일 데이터 upbit 키로도 제공
+            all.put("crypto",  tuple.getT1());
+            all.put("upbit",   tuple.getT1());
             all.put("stocks",  List.of(tuple.getT2(), tuple.getT3(), tuple.getT4()));
             all.put("usIndex", tuple.getT5());
             all.put("krIndex", tuple.getT6());
@@ -211,6 +208,100 @@ public class MarketService {
             if (cachedAllData != null) return Mono.just(cachedAllData);
             return Mono.error(e);
         });
+    }
+
+    // ── RiskScore: 업비트 change24h 기반
+    public Map<String, Object> getRiskScore() {
+        List<Map<String, Object>> coins = getUpbitData().block();
+
+        if (coins == null || coins.isEmpty()) {
+            return Map.of("score", 50, "level", "MEDIUM", "label", "데이터 없음", "color", "#f59e0b", "avgVolatility", 0.0, "breakdown", List.of());
+        }
+
+        double avgVolatility = coins.stream()
+                .filter(c -> c.get("change24h") != null)
+                .mapToDouble(c -> Math.abs(((Number) c.get("change24h")).doubleValue()))
+                .average()
+                .orElse(5.0);
+
+        int score = (int) Math.min(100, (avgVolatility / 15.0) * 100);
+
+        String level, label, color;
+        if (score < 30) {
+            level = "LOW";     label = "안정"; color = "#22c55e";
+        } else if (score < 60) {
+            level = "MEDIUM";  label = "보통"; color = "#f59e0b";
+        } else if (score < 80) {
+            level = "HIGH";    label = "주의"; color = "#f97316";
+        } else {
+            level = "EXTREME"; label = "위험"; color = "#ef4444";
+        }
+
+        List<Map<String, Object>> breakdown = coins.stream()
+                .filter(c -> c.get("change24h") != null)
+                .sorted((a, b) -> {
+                    double va = Math.abs(((Number) a.get("change24h")).doubleValue());
+                    double vb = Math.abs(((Number) b.get("change24h")).doubleValue());
+                    return Double.compare(vb, va);
+                })
+                .limit(5)
+                .map(c -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("symbol", c.getOrDefault("symbol", "?"));
+                    item.put("change", c.get("change24h"));
+                    return item;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("score", score);
+        result.put("level", level);
+        result.put("label", label);
+        result.put("color", color);
+        result.put("avgVolatility", Math.round(avgVolatility * 100.0) / 100.0);
+        result.put("breakdown", breakdown);
+        log.info("[RiskScore] score={}, level={}, avgVolatility={}", score, level, avgVolatility);
+        return result;
+    }
+
+    // ── EventAlert: 업비트 change24h 임계값 룰
+    public List<Map<String, Object>> getMarketEvents() {
+        List<Map<String, Object>> coins = getUpbitData().block();
+        List<Map<String, Object>> events = new ArrayList<>();
+
+        if (coins == null) return events;
+
+        for (Map<String, Object> coin : coins) {
+            String symbol = String.valueOf(coin.getOrDefault("symbol", "?"));
+            String name   = String.valueOf(coin.getOrDefault("name", symbol));
+            Object changeObj = coin.get("change24h");
+
+            if (changeObj == null) continue;
+            double change = ((Number) changeObj).doubleValue();
+
+            if (change >= 10) {
+                events.add(Map.of("type","SURGE","severity","HIGH","symbol",symbol,"name",name,"value",change,
+                        "message", String.format("%s 24h +%.1f%% 급등", symbol, change)));
+            } else if (change <= -10) {
+                events.add(Map.of("type","CRASH","severity","HIGH","symbol",symbol,"name",name,"value",change,
+                        "message", String.format("%s 24h %.1f%% 급락", symbol, change)));
+            } else if (change >= 5) {
+                events.add(Map.of("type","RISE","severity","MEDIUM","symbol",symbol,"name",name,"value",change,
+                        "message", String.format("%s 24h +%.1f%% 상승", symbol, change)));
+            } else if (change <= -5) {
+                events.add(Map.of("type","DROP","severity","MEDIUM","symbol",symbol,"name",name,"value",change,
+                        "message", String.format("%s 24h %.1f%% 하락", symbol, change)));
+            }
+        }
+
+        events.sort((a, b) -> {
+            int sa = "HIGH".equals(a.get("severity")) ? 0 : 1;
+            int sb = "HIGH".equals(b.get("severity")) ? 0 : 1;
+            return Integer.compare(sa, sb);
+        });
+
+        log.info("[EventAlert] 감지된 이벤트 수: {}", events.size());
+        return events;
     }
 
     // ── Yahoo 히스토리

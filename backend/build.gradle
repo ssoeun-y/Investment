@@ -27,7 +27,7 @@ subprojects {
 
     dependencies {
         compileOnly 'org.projectlombok:lombok'
-        implementation 'mysql:mysql-connector-java:8.0.29'
+        runtimeOnly 'com.mysql:mysql-connector-j:8.3.0'
 
         annotationProcessor 'org.projectlombok:lombok'
         annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

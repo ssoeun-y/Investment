@@ -5,6 +5,9 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import se.sowl.sowenixApi.common.CommonResponse;
 import se.sowl.sowenixApi.market.service.MarketService;
+import org.springframework.http.ResponseEntity;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/market")
@@ -47,5 +50,15 @@ public class MarketController {
     public Mono<CommonResponse<?>> getCrossMarketHistory(@RequestParam(defaultValue = "1") int days) {
         return marketService.getCrossMarketHistory(days)
                 .map(CommonResponse::ok);
+    }
+
+    @GetMapping("/risk")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getRiskScore() {
+        return ResponseEntity.ok(CommonResponse.ok(marketService.getRiskScore()));
+    }
+
+    @GetMapping("/events")
+    public ResponseEntity<CommonResponse<List<Map<String, Object>>>> getMarketEvents() {
+        return ResponseEntity.ok(CommonResponse.ok(marketService.getMarketEvents()));
     }
 }
