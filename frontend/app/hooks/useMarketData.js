@@ -8,6 +8,7 @@ export function useMarketData() {
     const [kospiData, setKospiData]   = useState(null);
     const [kosdaqData, setKosdaqData] = useState(null);
     const [stockData, setStockData]   = useState([]);
+    const [krStockData, setKrStockData] = useState([]);
 
     const fetchAllMarketData = async () => {
         const url = `${serverUrl}/api/market/all`;
@@ -88,6 +89,7 @@ export function useMarketData() {
                 setKosdaqData(market.krIndex?.[1]
                     ? { label: market.krIndex[1].name, price: market.krIndex[1].price, change: market.krIndex[1].change }
                     : null);
+                setKrStockData(market.krStocks || []);
             }
             const fg = await fetchFearGreed();
             if (fg) setFearGreed(fg);
@@ -99,5 +101,5 @@ export function useMarketData() {
         return () => clearInterval(interval);
     }, []);
 
-    return { cryptoData, fearGreed, kospiData, kosdaqData, stockData, fetchCrossMarketHistory };
+    return { cryptoData, fearGreed, kospiData, kosdaqData, stockData, krStockData, fetchCrossMarketHistory };
 }
