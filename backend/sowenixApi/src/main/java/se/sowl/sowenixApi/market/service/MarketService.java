@@ -26,19 +26,15 @@ public class MarketService {
     private final Map<Integer, Map<String, Object>> cachedHistory = new HashMap<>();
     private long lastAllDataTime = 0;
     private final Map<Integer, Long> lastHistoryTime = new HashMap<>();
-    private static final long CACHE_TTL = 1 * 60 * 1000;
+    private static final long CACHE_TTL = 60 * 1000;
 
-    // ── 업비트 코인 현재가 (KRW)
+    // ── 업비트 코인 현재가
     public Mono<List<Map<String, Object>>> getUpbitData() {
         String markets = "KRW-BTC,KRW-ETH,KRW-XRP,KRW-SOL,KRW-DOGE";
         String url = UPBIT_URL + "/ticker?markets=" + markets;
-
         return webClientBuilder.build()
-                .get()
-                .uri(url)
-                .header("Accept", "application/json")
-                .retrieve()
-                .bodyToMono(String.class)
+                .get().uri(url).header("Accept", "application/json")
+                .retrieve().bodyToMono(String.class)
                 .doOnNext(s -> log.info("업비트 RAW 응답: {}", s.substring(0, Math.min(200, s.length()))))
                 .map(s -> {
                     try {
@@ -48,15 +44,12 @@ public class MarketService {
                         for (Map<String, Object> node : list) {
                             String market = String.valueOf(node.get("market"));
                             String symbol = market.replace("KRW-", "");
-                            double price = toDouble(node.get("trade_price"));
-                            double changeRate = toDouble(node.get("signed_change_rate")) * 100;
-                            double volume = toDouble(node.get("acc_trade_price_24h"));
                             Map<String, Object> item = new HashMap<>();
                             item.put("symbol", symbol);
                             item.put("name", symbol);
-                            item.put("price", price);
-                            item.put("change24h", changeRate);
-                            item.put("volume", volume);
+                            item.put("price", toDouble(node.get("trade_price")));
+                            item.put("change24h", toDouble(node.get("signed_change_rate")) * 100);
+                            item.put("volume", toDouble(node.get("acc_trade_price_24h")));
                             result.add(item);
                         }
                         log.info("업비트 파싱 성공: {}개", result.size());
@@ -70,7 +63,7 @@ public class MarketService {
                 .onErrorReturn(List.of());
     }
 
-    // ── 업비트 BTC 히스토리 (차트용)
+    // ── BTC + 나스닥 + 코스피 히스토리
     public Mono<Map<String, Object>> getCrossMarketHistory(int days) {
         long now = System.currentTimeMillis();
         Long lastTime = lastHistoryTime.getOrDefault(days, 0L);
@@ -84,16 +77,12 @@ public class MarketService {
         String btcUrl = UPBIT_URL + "/candles/minutes/" + unit + "?market=KRW-BTC&count=" + Math.min(count, 200);
 
         Mono<List<List<Double>>> btcMono = webClientBuilder.build()
-                .get()
-                .uri(btcUrl)
-                .header("Accept", "application/json")
-                .retrieve()
-                .bodyToFlux(Map.class)
+                .get().uri(btcUrl).header("Accept", "application/json")
+                .retrieve().bodyToFlux(Map.class)
                 .map(candle -> {
                     String timeStr = String.valueOf(candle.get("candle_date_time_utc"));
                     long ts = java.time.Instant.parse(timeStr + "Z").toEpochMilli();
-                    double price = toDouble(candle.get("trade_price"));
-                    return List.of((double) ts, price);
+                    return List.of((double) ts, toDouble(candle.get("trade_price")));
                 })
                 .collectList()
                 .map(list -> {
@@ -101,7 +90,6 @@ public class MarketService {
                     sorted.sort(Comparator.comparingDouble(l -> l.get(0)));
                     return sorted;
                 })
-                .doOnError(e -> log.error("업비트 BTC 히스토리 에러: {}", e.getMessage()))
                 .onErrorResume(e -> {
                     if (cachedHistory.containsKey(days)) {
                         Object cached = cachedHistory.get(days).get("btc");
@@ -117,8 +105,6 @@ public class MarketService {
 
         return Mono.zip(btcMono, nasdaqMono, kospiMono)
                 .map(tuple -> {
-                    log.info("btc: {}, nasdaq: {}, kospi: {}",
-                            tuple.getT1().size(), tuple.getT2().size(), tuple.getT3().size());
                     Map<String, Object> result = new HashMap<>();
                     result.put("btc",    tuple.getT1());
                     result.put("nasdaq", tuple.getT2());
@@ -137,12 +123,8 @@ public class MarketService {
     // ── 미국 개별 주식 (Finnhub)
     public Mono<Map<String, Object>> getStockQuote(String symbol) {
         String url = FINNHUB_URL + "/quote?symbol=" + symbol + "&token=" + finnhubKey;
-
         return webClientBuilder.build()
-                .get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(Map.class)
+                .get().uri(url).retrieve().bodyToMono(Map.class)
                 .map(node -> {
                     double current = toDouble(node.get("c"));
                     double prev    = toDouble(node.get("pc"));
@@ -161,13 +143,11 @@ public class MarketService {
 
     // ── 미국 지수
     public Mono<List<Map<String, Object>>> getUsIndexData() {
-        return Mono.zip(
-                getStockQuote("QQQ"),
-                getStockQuote("SPY")
-        ).map(tuple -> List.of(
-                Map.of("name", "나스닥", "symbol", "QQQ", "price", tuple.getT1().get("price"), "change", tuple.getT1().get("change")),
-                Map.of("name", "S&P500", "symbol", "SPY", "price", tuple.getT2().get("price"), "change", tuple.getT2().get("change"))
-        ));
+        return Mono.zip(getStockQuote("QQQ"), getStockQuote("SPY"))
+                .map(tuple -> List.of(
+                        Map.of("name","나스닥","symbol","QQQ","price",tuple.getT1().get("price"),"change",tuple.getT1().get("change")),
+                        Map.of("name","S&P500","symbol","SPY","price",tuple.getT2().get("price"),"change",tuple.getT2().get("change"))
+                ));
     }
 
     // ── 한국 지수
@@ -178,7 +158,7 @@ public class MarketService {
         ).map(tuple -> List.of(tuple.getT1(), tuple.getT2()));
     }
 
-    // ── 전체 통합
+    // ── 전체 통합 (삼성전자 + SK하이닉스 포함)
     public Mono<Map<String, Object>> getAllMarketData() {
         long now = System.currentTimeMillis();
         if (cachedAllData != null && (now - lastAllDataTime) < CACHE_TTL) {
@@ -192,130 +172,99 @@ public class MarketService {
                 getStockQuote("TSLA"),
                 getUsIndexData(),
                 getKrIndexData()
-        ).map(tuple -> {
-            Map<String, Object> all = new HashMap<>();
-            all.put("crypto",  tuple.getT1());
-            all.put("upbit",   tuple.getT1());
-            all.put("stocks",  List.of(tuple.getT2(), tuple.getT3(), tuple.getT4()));
-            all.put("usIndex", tuple.getT5());
-            all.put("krIndex", tuple.getT6());
-            cachedAllData = all;
-            lastAllDataTime = System.currentTimeMillis();
-            log.info("캐시 갱신 (market/all)");
-            return all;
-        }).onErrorResume(e -> {
+        ).flatMap(tuple ->
+                Mono.zip(
+                        fetchYahooIndex("005930.KS", "삼성전자"),
+                        fetchYahooIndex("000660.KS", "SK하이닉스")
+                ).map(krStocks -> {
+                    Map<String, Object> samsung = new HashMap<>(krStocks.getT1());
+                    samsung.put("symbol", "005930");
+                    samsung.put("type", "kr_stock");
+
+                    Map<String, Object> hynix = new HashMap<>(krStocks.getT2());
+                    hynix.put("symbol", "000660");
+                    hynix.put("type", "kr_stock");
+
+                    Map<String, Object> all = new HashMap<>();
+                    all.put("crypto",   tuple.getT1());
+                    all.put("upbit",    tuple.getT1());
+                    all.put("stocks",   List.of(tuple.getT2(), tuple.getT3(), tuple.getT4()));
+                    all.put("krStocks", List.of(samsung, hynix));
+                    all.put("usIndex",  tuple.getT5());
+                    all.put("krIndex",  tuple.getT6());
+                    cachedAllData = all;
+                    lastAllDataTime = System.currentTimeMillis();
+                    log.info("캐시 갱신 (market/all) + 한국주식");
+                    return all;
+                })
+        ).onErrorResume(e -> {
             log.error("getAllMarketData 에러, 캐시 반환: {}", e.getMessage());
             if (cachedAllData != null) return Mono.just(cachedAllData);
             return Mono.error(e);
         });
     }
 
-    // ── RiskScore: 업비트 change24h 기반
+    // ── RiskScore
     public Map<String, Object> getRiskScore() {
         List<Map<String, Object>> coins = getUpbitData().block();
-
         if (coins == null || coins.isEmpty()) {
-            return Map.of("score", 50, "level", "MEDIUM", "label", "데이터 없음", "color", "#f59e0b", "avgVolatility", 0.0, "breakdown", List.of());
+            return Map.of("score",50,"level","MEDIUM","label","데이터 없음","color","#f59e0b","avgVolatility",0.0,"breakdown",List.of());
         }
-
         double avgVolatility = coins.stream()
                 .filter(c -> c.get("change24h") != null)
                 .mapToDouble(c -> Math.abs(((Number) c.get("change24h")).doubleValue()))
-                .average()
-                .orElse(5.0);
-
+                .average().orElse(5.0);
         int score = (int) Math.min(100, (avgVolatility / 15.0) * 100);
-
         String level, label, color;
-        if (score < 30) {
-            level = "LOW";     label = "안정"; color = "#22c55e";
-        } else if (score < 60) {
-            level = "MEDIUM";  label = "보통"; color = "#f59e0b";
-        } else if (score < 80) {
-            level = "HIGH";    label = "주의"; color = "#f97316";
-        } else {
-            level = "EXTREME"; label = "위험"; color = "#ef4444";
-        }
-
+        if (score < 30)      { level="LOW";     label="안정"; color="#22c55e"; }
+        else if (score < 60) { level="MEDIUM";  label="보통"; color="#f59e0b"; }
+        else if (score < 80) { level="HIGH";    label="주의"; color="#f97316"; }
+        else                 { level="EXTREME"; label="위험"; color="#ef4444"; }
         List<Map<String, Object>> breakdown = coins.stream()
                 .filter(c -> c.get("change24h") != null)
-                .sorted((a, b) -> {
-                    double va = Math.abs(((Number) a.get("change24h")).doubleValue());
-                    double vb = Math.abs(((Number) b.get("change24h")).doubleValue());
-                    return Double.compare(vb, va);
-                })
+                .sorted((a,b) -> Double.compare(
+                        Math.abs(((Number)b.get("change24h")).doubleValue()),
+                        Math.abs(((Number)a.get("change24h")).doubleValue())))
                 .limit(5)
-                .map(c -> {
-                    Map<String, Object> item = new HashMap<>();
-                    item.put("symbol", c.getOrDefault("symbol", "?"));
-                    item.put("change", c.get("change24h"));
-                    return item;
-                })
+                .map(c -> { Map<String,Object> i=new HashMap<>(); i.put("symbol",c.getOrDefault("symbol","?")); i.put("change",c.get("change24h")); return i; })
                 .collect(Collectors.toList());
-
         Map<String, Object> result = new HashMap<>();
-        result.put("score", score);
-        result.put("level", level);
-        result.put("label", label);
-        result.put("color", color);
-        result.put("avgVolatility", Math.round(avgVolatility * 100.0) / 100.0);
+        result.put("score", score); result.put("level", level); result.put("label", label);
+        result.put("color", color); result.put("avgVolatility", Math.round(avgVolatility*100.0)/100.0);
         result.put("breakdown", breakdown);
-        log.info("[RiskScore] score={}, level={}, avgVolatility={}", score, level, avgVolatility);
         return result;
     }
 
-    // ── EventAlert: 업비트 change24h 임계값 룰
+    // ── EventAlert
     public List<Map<String, Object>> getMarketEvents() {
         List<Map<String, Object>> coins = getUpbitData().block();
         List<Map<String, Object>> events = new ArrayList<>();
-
         if (coins == null) return events;
-
         for (Map<String, Object> coin : coins) {
-            String symbol = String.valueOf(coin.getOrDefault("symbol", "?"));
+            String symbol = String.valueOf(coin.getOrDefault("symbol","?"));
             String name   = String.valueOf(coin.getOrDefault("name", symbol));
             Object changeObj = coin.get("change24h");
-
             if (changeObj == null) continue;
             double change = ((Number) changeObj).doubleValue();
-
-            if (change >= 10) {
-                events.add(Map.of("type","SURGE","severity","HIGH","symbol",symbol,"name",name,"value",change,
-                        "message", String.format("%s 24h +%.1f%% 급등", symbol, change)));
-            } else if (change <= -10) {
-                events.add(Map.of("type","CRASH","severity","HIGH","symbol",symbol,"name",name,"value",change,
-                        "message", String.format("%s 24h %.1f%% 급락", symbol, change)));
-            } else if (change >= 5) {
-                events.add(Map.of("type","RISE","severity","MEDIUM","symbol",symbol,"name",name,"value",change,
-                        "message", String.format("%s 24h +%.1f%% 상승", symbol, change)));
-            } else if (change <= -5) {
-                events.add(Map.of("type","DROP","severity","MEDIUM","symbol",symbol,"name",name,"value",change,
-                        "message", String.format("%s 24h %.1f%% 하락", symbol, change)));
-            }
+            if (change >= 10)       events.add(Map.of("type","SURGE","severity","HIGH","symbol",symbol,"name",name,"value",change,"message",String.format("%s 24h +%.1f%% 급등",symbol,change)));
+            else if (change <= -10) events.add(Map.of("type","CRASH","severity","HIGH","symbol",symbol,"name",name,"value",change,"message",String.format("%s 24h %.1f%% 급락",symbol,change)));
+            else if (change >= 5)   events.add(Map.of("type","RISE","severity","MEDIUM","symbol",symbol,"name",name,"value",change,"message",String.format("%s 24h +%.1f%% 상승",symbol,change)));
+            else if (change <= -5)  events.add(Map.of("type","DROP","severity","MEDIUM","symbol",symbol,"name",name,"value",change,"message",String.format("%s 24h %.1f%% 하락",symbol,change)));
         }
-
-        events.sort((a, b) -> {
-            int sa = "HIGH".equals(a.get("severity")) ? 0 : 1;
-            int sb = "HIGH".equals(b.get("severity")) ? 0 : 1;
-            return Integer.compare(sa, sb);
-        });
-
-        log.info("[EventAlert] 감지된 이벤트 수: {}", events.size());
+        events.sort((a,b) -> Integer.compare("HIGH".equals(a.get("severity"))?0:1, "HIGH".equals(b.get("severity"))?0:1));
+        log.info("[EventAlert] 이벤트 수: {}", events.size());
         return events;
     }
 
     // ── Yahoo 히스토리
     private Mono<List<List<Double>>> fetchYahooHistory(String ticker, String interval, String range) {
-        String url = "https://query1.finance.yahoo.com/v8/finance/chart/" + ticker
-                + "?interval=" + interval + "&range=" + range;
+        String url = "https://query1.finance.yahoo.com/v8/finance/chart/" + ticker + "?interval=" + interval + "&range=" + range;
         log.info("Yahoo 히스토리 호출: {}", url);
         return webClientBuilder.build()
-                .get()
-                .uri(url)
-                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
-                .header("Accept", "application/json")
-                .retrieve()
-                .bodyToMono(Map.class)
+                .get().uri(url)
+                .header("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+                .header("Accept","application/json")
+                .retrieve().bodyToMono(Map.class)
                 .map(root -> {
                     try {
                         Map chart = (Map) root.get("chart");
@@ -328,22 +277,19 @@ public class MarketService {
                         List quotes = (List) indicators.get("quote");
                         Map quote = (Map) quotes.get(0);
                         List closes = (List) quote.get("close");
-                        log.info("Yahoo {} 성공, 데이터 수: {}", ticker, timestamps.size());
                         List<List<Double>> data = new ArrayList<>();
                         for (int i = 0; i < timestamps.size(); i++) {
                             if (i < closes.size() && closes.get(i) != null) {
-                                double ts = ((Number) timestamps.get(i)).doubleValue() * 1000.0;
-                                double price = ((Number) closes.get(i)).doubleValue();
-                                data.add(List.of(ts, price));
+                                data.add(List.of(((Number)timestamps.get(i)).doubleValue()*1000.0, ((Number)closes.get(i)).doubleValue()));
                             }
                         }
+                        log.info("Yahoo {} 성공, {}건", ticker, data.size());
                         return data;
                     } catch (Exception e) {
                         log.error("Yahoo 파싱 에러 ({}): {}", ticker, e.getMessage());
                         return List.<List<Double>>of();
                     }
                 })
-                .doOnError(e -> log.error("Yahoo 호출 실패 ({}): {}", ticker, e.getMessage()))
                 .onErrorReturn(List.of());
     }
 
@@ -351,12 +297,10 @@ public class MarketService {
     private Mono<Map<String, Object>> fetchYahooIndex(String ticker, String label) {
         String url = "https://query1.finance.yahoo.com/v8/finance/chart/" + ticker + "?interval=1d&range=1d";
         return webClientBuilder.build()
-                .get()
-                .uri(url)
-                .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
-                .header("Accept", "application/json")
-                .retrieve()
-                .bodyToMono(Map.class)
+                .get().uri(url)
+                .header("User-Agent","Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
+                .header("Accept","application/json")
+                .retrieve().bodyToMono(Map.class)
                 .map(root -> {
                     try {
                         Map chart = (Map) root.get("chart");
@@ -387,7 +331,6 @@ public class MarketService {
         try { return Double.parseDouble(val.toString()); } catch (Exception e) { return 0.0; }
     }
 
-    // ── Mock 데이터
     private Map<String, Object> getMockStockData(String symbol) {
         Map<String, Map<String, Object>> mocks = Map.of(
                 "NVDA", Map.of("symbol","NVDA","price",875.4,"change",3.21),
@@ -401,6 +344,8 @@ public class MarketService {
 
     private Map<String, Object> getMockKrIndex(String name) {
         if (name.equals("코스피")) return new HashMap<>(Map.of("name","코스피","price",2712.34,"change",0.43));
+        if (name.equals("삼성전자")) return new HashMap<>(Map.of("name","삼성전자","price",71400.0,"change",0.56));
+        if (name.equals("SK하이닉스")) return new HashMap<>(Map.of("name","SK하이닉스","price",198000.0,"change",1.23));
         return new HashMap<>(Map.of("name","코스닥","price",876.12,"change",-0.21));
     }
 }
