@@ -2,7 +2,15 @@
 const nextConfig = {
     reactStrictMode: true,
     images: {
-        domains: ['example.com'], // 이미지 도메인 추가
+        domains: ['example.com'],
+    },
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: 'http://localhost:8080/api/:path*',
+            },
+        ];
     },
 }
 

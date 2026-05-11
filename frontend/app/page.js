@@ -10,6 +10,10 @@ import CrossMarketChart  from './components/CrossMarketChart';
 import RiskScore         from './components/RiskScore';
 import AIInsight         from './components/AIInsight';
 import EventAlert        from './components/EventAlert';
+import VolumeBacktest    from './components/VolumeBacktest';
+import CorrMatrix        from './components/CorrMatrix';
+import HeatmapCard       from './components/HeatmapCard';
+import TickerTable       from './components/TickerTable';
 import './styles/dashboard.css';
 
 export default function Home() {
@@ -20,7 +24,6 @@ export default function Home() {
 
     const fgValue = fearGreed ? Number(fearGreed.value) : null;
 
-    // ── 시장 국면
     const marketPhase = fgValue === null ? '--' : fgValue >= 65 ? '🐂 BULL' : fgValue >= 35 ? '↔ SIDE' : '🐻 BEAR';
     const marketColor = fgValue === null ? 'var(--muted2)' : fgValue >= 65 ? 'var(--green)' : fgValue >= 35 ? 'var(--yellow)' : 'var(--red)';
     const marketDesc  = fgValue === null ? '데이터 로딩 중...'
@@ -31,32 +34,30 @@ export default function Home() {
     const marketAction = fgValue === null ? '' : fgValue >= 65 ? '→ ⚠️ 매도 고려' : fgValue >= 50 ? '→ 👀 관망' : fgValue >= 35 ? '→ 🟡 분할 매수' : '→ ✅ 적극 매수';
     const actionColor  = fgValue === null ? 'var(--muted2)' : fgValue >= 65 ? 'var(--red)' : fgValue >= 50 ? 'var(--muted2)' : fgValue >= 35 ? 'var(--yellow)' : 'var(--green)';
 
-    // ── 오늘의 전략
     const getTodayStrategy = () => {
-        const btcChg      = cryptoData?.[0]?.price_change_percentage_24h || 0;
-        const samsungChg  = krStockData?.find(s => s.symbol === '005930')?.change || 0;
-        const hynixChg    = krStockData?.find(s => s.symbol === '000660')?.change || 0;
-        const nvdaChg     = stockData?.find(s => s.symbol === 'NVDA')?.change || 0;
-        const semiAvg     = (samsungChg + hynixChg + nvdaChg) / 3;
-        const reasons     = [];
+        const btcChg     = cryptoData?.[0]?.price_change_percentage_24h || 0;
+        const samsungChg = krStockData?.find(s => s.symbol === '005930')?.change || 0;
+        const hynixChg   = krStockData?.find(s => s.symbol === '000660')?.change || 0;
+        const nvdaChg    = stockData?.find(s => s.symbol === 'NVDA')?.change || 0;
+        const semiAvg    = (samsungChg + hynixChg + nvdaChg) / 3;
+        const reasons    = [];
         let action = '👀 관망', color = 'var(--yellow)';
 
         if (fgValue !== null) reasons.push(fgValue >= 65 ? '시장 탐욕 과열 구간' : fgValue >= 35 ? `시장 SIDE (공포/탐욕 ${fgValue})` : '시장 공포 구간 — 바닥 가능성');
-        if (btcChg < -2)      reasons.push(`BTC 약세 (${btcChg.toFixed(1)}%)`);
-        else if (btcChg > 2)  reasons.push(`BTC 강세 (${btcChg.toFixed(1)}%)`);
-        else                  reasons.push(`BTC 횡보 (${btcChg.toFixed(1)}%)`);
+        if (btcChg < -2)     reasons.push(`BTC 약세 (${btcChg.toFixed(1)}%)`);
+        else if (btcChg > 2) reasons.push(`BTC 강세 (${btcChg.toFixed(1)}%)`);
+        else                 reasons.push(`BTC 횡보 (${btcChg.toFixed(1)}%)`);
         if (semiAvg > 2)      reasons.push(`반도체 강세 — 삼성 ${samsungChg.toFixed(1)}% / 하이닉스 ${hynixChg.toFixed(1)}%`);
         else if (semiAvg < -2) reasons.push(`반도체 약세 — 삼성 ${samsungChg.toFixed(1)}% / 하이닉스 ${hynixChg.toFixed(1)}%`);
         else                  reasons.push(`반도체 보합 — 삼성 ${samsungChg.toFixed(1)}% / 하이닉스 ${hynixChg.toFixed(1)}%`);
 
-        if (fgValue !== null && fgValue < 35 && btcChg < -3) { action = '✅ 분할 매수'; color = 'var(--green)'; }
+        if (fgValue !== null && fgValue < 35 && btcChg < -3)  { action = '✅ 분할 매수'; color = 'var(--green)'; }
         else if (fgValue !== null && fgValue >= 65 && btcChg > 3) { action = '⚠️ 익절 고려'; color = 'var(--red)'; }
         else if (semiAvg > 3 && btcChg < 0) { action = '🔀 반도체 우선'; color = 'var(--accent)'; }
         return { action, color, reasons };
     };
     const strategy = getTodayStrategy();
 
-    // ── 코인 vs 반도체 인사이트
     const getCryptoVsSemi = () => {
         const btcChg     = cryptoData?.[0]?.price_change_percentage_24h || 0;
         const samsungChg = krStockData?.find(s => s.symbol === '005930')?.change || 0;
@@ -66,8 +67,7 @@ export default function Home() {
         const sameDir    = Math.sign(btcChg) === Math.sign(semiAvg);
         const diff       = Math.abs(btcChg - semiAvg).toFixed(1);
         return {
-            btcChg, semiAvg, sameDir, diff,
-            samsungChg, hynixChg, nvdaChg,
+            btcChg, semiAvg, sameDir, diff, samsungChg, hynixChg, nvdaChg,
             corr: sameDir ? (diff < 2 ? '강한 동조' : '약한 동조') : (diff > 4 ? '강한 디커플링' : '디커플링'),
             corrColor: sameDir ? 'var(--green)' : 'var(--yellow)',
             insight: sameDir
@@ -78,7 +78,6 @@ export default function Home() {
     };
     const cvsemi = getCryptoVsSemi();
 
-    // ── 종목 시그널
     const getSignalItem = (symbol, label, type, chg) => {
         const absChg = Math.abs(chg);
         const priority = absChg >= 5 ? '🔥' : absChg >= 2 ? '⚡' : 'ℹ️';
@@ -92,9 +91,19 @@ export default function Home() {
     ).sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
     const semiSignals = [
-        ...( krStockData || []).map(s => getSignalItem(s.symbol, s.name, '한국주식', s.change || 0)),
-        ...( stockData   || []).filter(s => s.symbol === 'NVDA').map(s => getSignalItem(s.symbol, s.symbol, '미국주식', s.change || 0)),
+        ...(krStockData || []).map(s => getSignalItem(s.symbol, s.name, '한국주식', s.change || 0)),
+        ...(stockData   || []).filter(s => s.symbol === 'NVDA').map(s => getSignalItem(s.symbol, s.symbol, '미국주식', s.change || 0)),
     ].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+
+    const SignalCard = ({ s }) => (
+        <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '8px 14px', minWidth: 90, textAlign: 'center', borderTop: `2px solid ${s.color}` }}>
+            <div style={{ fontSize: 11, marginBottom: 2 }}>{s.priority}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.type}</div>
+            <div style={{ fontSize: 12, color: s.color, fontWeight: 600, marginTop: 4 }}>{s.action}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%</div>
+        </div>
+    );
 
     return (
         <>
@@ -168,16 +177,10 @@ export default function Home() {
                         </div>
                         <div style={{ flex: 1, background: 'var(--surface2)', borderRadius: 8, padding: '10px 14px' }}>
                             <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 6 }}>💾 반도체</div>
-                            <div style={{ fontSize: 12, color: 'var(--text)' }}>
-                                <span style={{ color: cvsemi.samsungChg >= 0 ? 'var(--green)' : 'var(--red)', marginRight: 8 }}>
-                                    삼성 {cvsemi.samsungChg >= 0 ? '+' : ''}{cvsemi.samsungChg.toFixed(1)}%
-                                </span>
-                                <span style={{ color: cvsemi.hynixChg >= 0 ? 'var(--green)' : 'var(--red)', marginRight: 8 }}>
-                                    하이닉스 {cvsemi.hynixChg >= 0 ? '+' : ''}{cvsemi.hynixChg.toFixed(1)}%
-                                </span>
-                                <span style={{ color: cvsemi.nvdaChg >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                                    NVDA {cvsemi.nvdaChg >= 0 ? '+' : ''}{cvsemi.nvdaChg.toFixed(1)}%
-                                </span>
+                            <div style={{ fontSize: 12, color: 'var(--text)', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                <span style={{ color: cvsemi.samsungChg >= 0 ? 'var(--green)' : 'var(--red)' }}>삼성 {cvsemi.samsungChg >= 0 ? '+' : ''}{cvsemi.samsungChg.toFixed(1)}%</span>
+                                <span style={{ color: cvsemi.hynixChg >= 0 ? 'var(--green)' : 'var(--red)' }}>하이닉스 {cvsemi.hynixChg >= 0 ? '+' : ''}{cvsemi.hynixChg.toFixed(1)}%</span>
+                                <span style={{ color: cvsemi.nvdaChg >= 0 ? 'var(--green)' : 'var(--red)' }}>NVDA {cvsemi.nvdaChg >= 0 ? '+' : ''}{cvsemi.nvdaChg.toFixed(1)}%</span>
                             </div>
                         </div>
                     </div>
@@ -189,40 +192,25 @@ export default function Home() {
                     )}
                 </div>
 
-                {/* ④ 종목 시그널 — 그룹화 */}
-                <div className="card" style={{ marginBottom: 16 }}>
-                    <div className="card-header">
-                        <span className="card-title">⚡ 종목 시그널</span>
-                        <span className="card-badge badge-green">실시간</span>
-                    </div>
-                    <div style={{ paddingTop: 8 }}>
-                        {/* 코인 그룹 */}
-                        <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 8, fontWeight: 600 }}>🪙 CRYPTO</div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                            {cryptoSignals.map(s => (
-                                <div key={s.symbol} style={{ background: 'var(--surface2)', borderRadius: 8, padding: '8px 14px', minWidth: 90, textAlign: 'center', borderTop: `2px solid ${s.color}` }}>
-                                    <div style={{ fontSize: 11, marginBottom: 2 }}>{s.priority}</div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{s.label}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.type}</div>
-                                    <div style={{ fontSize: 12, color: s.color, fontWeight: 600, marginTop: 4 }}>{s.action}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%</div>
-                                </div>
-                            ))}
+                {/* ④ 종목 시그널 + 리스크 스코어 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div className="card">
+                        <div className="card-header">
+                            <span className="card-title">⚡ 종목 시그널</span>
+                            <span className="card-badge badge-green">실시간</span>
                         </div>
-                        {/* 반도체 그룹 */}
-                        <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 8, fontWeight: 600 }}>💾 SEMICONDUCTOR</div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            {semiSignals.map(s => (
-                                <div key={s.symbol} style={{ background: 'var(--surface2)', borderRadius: 8, padding: '8px 14px', minWidth: 90, textAlign: 'center', borderTop: `2px solid ${s.color}` }}>
-                                    <div style={{ fontSize: 11, marginBottom: 2 }}>{s.priority}</div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{s.label}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.type}</div>
-                                    <div style={{ fontSize: 12, color: s.color, fontWeight: 600, marginTop: 4 }}>{s.action}</div>
-                                    <div style={{ fontSize: 11, color: 'var(--muted2)' }}>{s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%</div>
-                                </div>
-                            ))}
+                        <div style={{ paddingTop: 8 }}>
+                            <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 8, fontWeight: 600 }}>🪙 CRYPTO</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                                {cryptoSignals.map(s => <SignalCard key={s.symbol} s={s} />)}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--muted2)', marginBottom: 8, fontWeight: 600 }}>💾 SEMICONDUCTOR</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {semiSignals.map(s => <SignalCard key={s.symbol} s={s} />)}
+                            </div>
                         </div>
                     </div>
+                    <RiskScore />
                 </div>
 
                 {/* ⑤ 크로스마켓 차트 */}
@@ -242,13 +230,27 @@ export default function Home() {
                     kosdaqData={kosdaqData}
                 />
 
-                {/* ⑦ 이벤트 감지 + 리스크 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, marginTop: 16 }}>
-                    <EventAlert />
-                    <RiskScore />
+                {/* ⑦ 이벤트 감지 */}
+                <div style={{ marginTop: 16 }}>
+                    <EventAlert cryptoData={cryptoData} />
+                </div>
+                
+                {/* ⑦-1 거래량 + 백테스팅 */}
+                <div style={{ marginTop: 16 }}>
+                    <VolumeBacktest chartsReady={chartsReady} />
                 </div>
 
-                {/* ⑧ 포트폴리오 */}
+                {/* ⑦-2 상관관계 */}
+                <div style={{ marginTop: 16 }}>
+                    <CorrMatrix />
+                </div>
+                
+                {/* ⑧ AI 인사이트 */}
+                <div style={{ marginTop: 16 }}>
+                    <AIInsight />
+                </div>
+
+                {/* ⑨ 포트폴리오 */}
                 <div className="card" style={{ marginTop: 16, marginBottom: 24 }}>
                     <div className="card-header">
                         <span className="card-title">💼 내 포트폴리오</span>
