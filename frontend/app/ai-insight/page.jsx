@@ -267,7 +267,6 @@ ${context}
                         disabled={chatLoading || !input.trim()}
                         style={{
                             padding: '10px 18px', background: 'var(--accent)', color: '#fff',
-                            border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                             opacity: chatLoading || !input.trim() ? 0.5 : 1
                         }}
                     >
