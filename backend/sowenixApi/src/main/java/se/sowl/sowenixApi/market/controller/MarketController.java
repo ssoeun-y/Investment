@@ -61,4 +61,19 @@ public class MarketController {
     public ResponseEntity<CommonResponse<List<Map<String, Object>>>> getMarketEvents() {
         return ResponseEntity.ok(CommonResponse.ok(marketService.getMarketEvents()));
     }
+
+    @GetMapping("/correlation")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getCorrelation() {
+        return ResponseEntity.ok(CommonResponse.ok(marketService.getCorrelationMatrix()));
+    }
+
+    @GetMapping("/volume")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getVolume() {
+        return ResponseEntity.ok(CommonResponse.ok(marketService.getVolumeData()));
+    }
+
+    @GetMapping("/backtest")
+    public ResponseEntity<CommonResponse<Map<String, Object>>> getBacktest() {
+        return ResponseEntity.ok(CommonResponse.ok(marketService.getBacktestData()));
+    }
 }
