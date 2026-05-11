@@ -1,22 +1,43 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function VolumeBacktest({ chartsReady }) {
+    const [volumeData, setVolumeData] = useState(null);
+    const [backtestData, setBacktestData] = useState(null);
+
+    useEffect(() => {
+        fetch('/api/market/volume')
+            .then(r => r.json())
+            .then(json => setVolumeData(json.result))
+            .catch(err => console.error('volume fetch 에러:', err));
+
+        fetch('/api/market/backtest')
+            .then(r => r.json())
+            .then(json => setBacktestData(json.result))
+            .catch(err => console.error('backtest fetch 에러:', err));
+    }, []);
 
     useEffect(() => {
         if (!chartsReady || typeof window === 'undefined' || !window.Chart) return;
+        if (!volumeData || !backtestData) return;
 
         // 거래량 차트
         const ctx1 = document.getElementById('volumeChart');
-        if (ctx1 && !window.Chart.getChart(ctx1)) {
-            console.log('[CHART] 거래량 차트 렌더링');
+        if (ctx1) {
+            const existing = window.Chart.getChart(ctx1);
+            if (existing) existing.destroy();
+
             new window.Chart(ctx1, {
                 type: 'bar',
                 data: {
-                    labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                    labels: volumeData.labels,
                     datasets: [
-                        { label: '코인 거래량 (억₩)', data: [28,32,25,41,38,52,44], backgroundColor: 'rgba(245,200,66,0.6)', borderRadius: 3 },
-                        { label: '주식 거래량 (억₩)', data: [65,72,58,80,75,61,68], backgroundColor: 'rgba(79,142,255,0.5)', borderRadius: 3 }
+                        {
+                            label: 'BTC 거래대금 (억₩)',
+                            data: volumeData.crypto,
+                            backgroundColor: 'rgba(245,200,66,0.6)',
+                            borderRadius: 3
+                        }
                     ]
                 },
                 options: {
@@ -32,15 +53,32 @@ export default function VolumeBacktest({ chartsReady }) {
 
         // 백테스팅 차트
         const ctx2 = document.getElementById('backtestChart');
-        if (ctx2 && !window.Chart.getChart(ctx2)) {
-            console.log('[CHART] 백테스팅 차트 렌더링');
+        if (ctx2) {
+            const existing = window.Chart.getChart(ctx2);
+            if (existing) existing.destroy();
+
+            const maLabel  = `MA5 전략 ${backtestData.maReturn >= 0 ? '+' : ''}${backtestData.maReturn}%`;
+            const holdLabel = `단순 보유 ${backtestData.holdReturn >= 0 ? '+' : ''}${backtestData.holdReturn}%`;
+
             new window.Chart(ctx2, {
                 type: 'line',
                 data: {
-                    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+                    labels: backtestData.labels,
                     datasets: [
-                        { label: 'AI 전략 +74%',  data: [100,108,115,122,118,131,140,138,152,161,158,174], borderColor: '#10d9a0', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3 },
-                        { label: '단순 보유 +42%', data: [100,104,108,106,112,120,118,125,130,127,135,142], borderColor: '#4f8eff', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, tension: 0.3 }
+                        {
+                            label: maLabel,
+                            data: backtestData.maStrategy,
+                            borderColor: '#10d9a0',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2, pointRadius: 0, tension: 0.3
+                        },
+                        {
+                            label: holdLabel,
+                            data: backtestData.holdStrategy,
+                            borderColor: '#4f8eff',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5, borderDash: [4, 4], pointRadius: 0, tension: 0.3
+                        }
                     ]
                 },
                 options: {
@@ -48,18 +86,26 @@ export default function VolumeBacktest({ chartsReady }) {
                     plugins: { legend: { display: true, labels: { color: '#9ca3af', font: { size: 11 } } } },
                     scales: {
                         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 11 } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 11 }, callback: v => v + '%' } }
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: { color: '#6b7280', font: { size: 11 }, callback: v => v + '%' }
+                        }
                     }
                 }
             });
         }
-    }, [chartsReady]);
+    }, [chartsReady, volumeData, backtestData]);
 
     return (
         <div className="grid-2">
             <div className="card">
                 <div className="card-header">
                     <span className="card-title">📊 거래량 분석</span>
+                    {volumeData && (
+                        <span className="card-badge badge-amber">
+                            24h {volumeData.total24h.toLocaleString()}억₩
+                        </span>
+                    )}
                 </div>
                 <div className="card-body">
                     <div className="chart-wrap" style={{ height: 180 }}>
