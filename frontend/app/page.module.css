@@ -1,3 +1,7 @@
+/* ──────────────────────────────────────────────────────
+   page.module.css — 기존 파일 하단에 아래 내용 전부 붙여넣기
+   (기존 스타일은 건드리지 말고 아래부터 추가)
+   ────────────────────────────────────────────────────── */
 .container {
   max-width: 800px;
   margin: 0 auto;
@@ -73,3 +77,523 @@
   color: #666;
   font-size: 0.9em;
 }
+/* ── 존 레이블 */
+.zoneLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin: 16px 0 6px;
+}
+
+/* ── 카드 공통 */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cardTitleSub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted2);
+}
+.cardBadge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.badgeGreen {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+/* ── flex helper */
+.flex1 { flex: 1; }
+
+/* ── 티커 테이프 */
+.tickerTape {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  gap: 0;
+  margin-bottom: 4px;
+}
+.tickerTape::-webkit-scrollbar { display: none; }
+.tickerItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tickerName {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted2);
+}
+.tickerVal {
+  font-size: 11px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.tickerUp {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  font-variant-numeric: tabular-nums;
+}
+.tickerDn {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+  font-variant-numeric: tabular-nums;
+}
+.tickerDiv {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+/* ── ZONE A: KPI */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+/* KOSPI/KOSDAQ 듀얼 레이아웃 */
+.kpiDual {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.kpiDualDiv {
+  width: 1px;
+  height: 36px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.kpiCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.kpiTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.kpiLabel {
+  font-size: 10px;
+  color: var(--muted2);
+}
+.kpiSource {
+  font-size: 9px;
+  color: var(--muted2);
+  opacity: 0.7;
+}
+.kpiVal {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.kpiSub {
+  font-size: 10px;
+  color: var(--muted2);
+  line-height: 1.4;
+}
+
+/* ── ZONE B */
+.zoneB {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.chartMain {
+  min-height: 200px;
+}
+.flowPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.fpSection {
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.fpSection:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.fpLabel {
+  font-size: 10px;
+  color: var(--muted2);
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.flowBarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.flowName {
+  font-size: 9px;
+  color: var(--muted2);
+  width: 64px;
+  flex-shrink: 0;
+}
+.flowTrack {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.flowFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s;
+}
+.flowPct {
+  font-size: 10px;
+  font-weight: 600;
+  width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 상관계수 */
+.corrBig {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 5px;
+}
+.corrTrack {
+  position: relative;
+  height: 6px;
+  background: linear-gradient(to right, #ef4444, #d1d5db, #4ade80);
+  border-radius: 3px;
+  margin-bottom: 3px;
+}
+.corrFill {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+  top: -2px;
+  transform: translateX(-50%);
+}
+.corrAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--muted2);
+  margin-bottom: 4px;
+}
+.corrHint {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* vs 블록 */
+.vsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.vsBlock { flex: 1; }
+.vsRight { text-align: right; }
+.vsSub {
+  font-size: 9px;
+  color: var(--muted2);
+  display: block;
+}
+.vsVal {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.vsSep { font-size: 16px; }
+.vsDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+}
+.vsWarning {
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: rgba(250, 204, 21, 0.1);
+  border-radius: 5px;
+  font-size: 10px;
+  color: #facc15;
+  line-height: 1.4;
+}
+
+/* ── ZONE C */
+.zoneC {
+  display: grid;
+  grid-template-columns: 1fr 1fr 160px;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.signalPanel { padding: 10px 12px; }
+.signalTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.signalTable th {
+  text-align: left;
+  font-size: 9px;
+  color: var(--muted2);
+  font-weight: 400;
+  padding: 3px 5px;
+  border-bottom: 1px solid var(--border);
+}
+.signalTable td {
+  padding: 6px 5px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.signalTable tr:last-child td { border-bottom: none; }
+.tdEmpty {
+  text-align: center;
+  color: var(--muted2);
+  padding: 16px;
+}
+.tdMuted {
+  color: var(--muted2);
+  font-size: 11px;
+}
+.typeBadge {
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--surface2);
+  color: var(--muted2);
+  white-space: nowrap;
+}
+.strengthTrack {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  width: 60px;
+}
+.strengthFill { height: 100%; border-radius: 2px; }
+.sigBuy   { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; background: rgba(74,222,128,0.15);  color: #4ade80; }
+.sigSell  { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; background: rgba(248,113,113,0.15); color: #f87171; }
+.sigWatch { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; background: rgba(250,204,21,0.15);  color: #facc15; }
+
+/* 공포/탐욕 패널 */
+.fgPanel {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+}
+.fgGaugeWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 0 10px;
+}
+.fgNum {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.fgLabel  { font-size: 12px; font-weight: 600; }
+.fgPrev   { font-size: 9px; color: var(--muted2); }
+.actionBox {
+  margin-top: auto;
+  border: 1px solid;
+  border-radius: 7px;
+  padding: 7px 10px;
+  text-align: center;
+}
+.actionLabel { font-size: 9px; color: var(--muted2); margin-bottom: 3px; }
+.actionVal   { font-size: 13px; font-weight: 700; }
+
+/* ── ZONE D: 섹터 로테이션 테이블 */
+.sectorCard { padding: 10px 12px; }
+
+.sectorRotTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.sectorRotTable th {
+  text-align: left;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--muted2);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sectorRotTable td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.sectorRotTable tr:last-child td { border-bottom: none; }
+.sectorRotTable tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* 섹터명 셀 */
+.secNameCell {
+  font-weight: 600;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.secDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 추세 스파크바 */
+.sparkBar {
+  font-size: 13px;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 강도 점수 (● dots) */
+.dotRow {
+  display: flex;
+  gap: 2px;
+}
+.dotFill  { font-size: 9px; color: var(--text); }
+.dotEmpty { font-size: 9px; color: var(--border2); }
+
+/* 판단 배지 */
+.verdictBuy2 {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 700;
+  background: rgba(16,217,160,0.2); color: #10d9a0; white-space: nowrap;
+}
+.verdictBuy {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+  background: rgba(74,222,128,0.12); color: #4ade80; white-space: nowrap;
+}
+.verdictWatch {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+  background: rgba(250,204,21,0.12); color: #facc15; white-space: nowrap;
+}
+.verdictSell {
+  font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+  background: rgba(248,113,113,0.12); color: #f87171; white-space: nowrap;
+}
+
+/* Zone B 사이드 — 섹터 Top 3 미니바 */
+.sectorTopRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.sectorTopRank {
+  font-size: 9px;
+  color: var(--muted2);
+  width: 10px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.sectorTopName {
+  font-size: 9px;
+  color: var(--text);
+  width: 68px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sectorTopTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.sectorTopFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s;
+}
+.sectorTopChg {
+  font-size: 9px;
+  font-weight: 600;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 기존 섹터 셀 (하위 호환, 사용 안 함) */
+.sectorEmpty { color: var(--muted2); font-size: 12px; padding: 12px; }
+
+/* ── 포트폴리오 */
+.portfolioRow { display: flex; gap: 12px; padding: 12px 0; }
+.portfolioCell {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  background: var(--surface2);
+  border-radius: 8px;
+}
+.portfolioVal   { font-size: 17px; font-weight: 700; color: var(--text); }
+.portfolioLabel { font-size: 11px; color: var(--muted2); margin-top: 4px; }
+.portfolioLock  { padding: 28px 0; text-align: center; color: var(--muted2); font-size: 13px; }
+.loginLink      { font-size: 12px; color: var(--accent); cursor: pointer; }
