@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:8080';
+const MARKET_API_ROOT = '/api/market';
 
 export function useMarketData() {
     const [cryptoData, setCryptoData] = useState([]);
@@ -11,7 +11,7 @@ export function useMarketData() {
     const [krStockData, setKrStockData] = useState([]);
 
     const fetchAllMarketData = async () => {
-        const url = `${serverUrl}/api/market/all`;
+        const url = `${MARKET_API_ROOT}/all`;
         console.log(`[MARKET/ALL] 요청 → ${url}`);
         console.time('[MARKET/ALL] 응답시간');
         try {
@@ -43,7 +43,7 @@ export function useMarketData() {
     };
 
     const fetchCrossMarketHistory = async (days = 1) => {
-        const url = `${serverUrl}/api/market/history?days=${days}`;
+        const url = `${MARKET_API_ROOT}/history?days=${days}`;
         console.log(`[HISTORY] 요청 → ${url}`);
         console.time(`[HISTORY] days=${days} 응답시간`);
         try {

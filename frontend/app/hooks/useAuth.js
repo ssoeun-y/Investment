@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:8080';
+const API_ROOT = '/api';
 
 export function useAuth() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -8,7 +8,7 @@ export function useAuth() {
 
     useEffect(() => {
         const check = async () => {
-            const url = `${serverUrl}/api/auth/session`;
+            const url = `${API_ROOT}/auth/session`;
             console.log(`[AUTH] 세션 확인 요청 → ${url}`);
             try {
                 const res  = await fetch(url, { credentials: 'include' });
@@ -27,13 +27,13 @@ export function useAuth() {
 
     const handleKakaoLogin = () => {
         console.log('[AUTH] 카카오 로그인 시도');
-        window.location.href = `${serverUrl}/oauth2/authorization/kakao`;
+        window.location.href = '/oauth2/authorization/kakao';
     };
 
     const handleLogout = () => {
         console.log('[AUTH] 로그아웃');
         setIsLoggedIn(false);
-        window.location.href = `${serverUrl}/logout`;
+        window.location.href = '/logout';
     };
 
     return { isLoggedIn, isLoading, handleKakaoLogin, handleLogout };
