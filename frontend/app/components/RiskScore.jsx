@@ -8,7 +8,7 @@ export default function RiskScore() {
     useEffect(() => {
         const fetchRisk = async () => {
             try {
-                const res = await fetch('http://localhost:8080/api/market/risk');
+                const res = await fetch('/api/market/risk');
                 const json = await res.json();
                 setData(json.result ?? null);
             } catch (e) {
