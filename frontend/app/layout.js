@@ -1,4 +1,5 @@
 'use client';
+import './globals.css';
 import { SessionProvider } from "next-auth/react";
 import Sidebar from "./components/Sidebar";
 

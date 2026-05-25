@@ -31,11 +31,22 @@ body::before { content:''; position:fixed; inset:0; background-image:linear-grad
 
 /* 메인 */
 .main { margin-left:220px; position:relative; z-index:1; }
-.topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
-.topbar-left { display:flex; align-items:center; gap:20px; }
+.topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:11px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+.topbar-left { display:flex; align-items:center; gap:0; }
 .page-title { font-size:16px; font-weight:600; }
 .live-badge { display:flex; align-items:center; gap:6px; font-size:11px; font-family:'DM Mono',monospace; color:var(--accent); background:var(--green-dim); padding:4px 10px; border-radius:20px; border:1px solid rgba(16,217,160,0.25); }
-.topbar-right { display:flex; align-items:center; gap:12px; }
+.topbar-right { display:flex; align-items:center; gap:10px; }
+
+/* 네비게이션 */
+.topbar-nav { display:flex; align-items:center; gap:2px; }
+.topbar-nav-item { padding:5px 11px; font-size:13px; color:var(--muted); text-decoration:none; border-radius:6px; transition:all 0.15s; border:1px solid transparent; }
+.topbar-nav-item:hover { color:var(--text); background:var(--bg3); }
+.topbar-nav-item.active { color:var(--accent); background:var(--green-dim); border-color:rgba(16,217,160,0.2); }
+
+/* 실시간 시계 */
+.topbar-clock { display:flex; align-items:center; gap:6px; padding:4px 10px; background:var(--green-dim); border:1px solid rgba(16,217,160,0.25); border-radius:20px; }
+.topbar-live { font-size:11px; font-family:'DM Mono',monospace; color:var(--accent); font-weight:600; }
+.topbar-time { font-size:11px; font-family:'DM Mono',monospace; color:var(--muted); }
 .search-box { display:flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--border2); padding:7px 14px; border-radius:8px; font-size:13px; color:var(--muted); width:200px; }
 .btn-icon { width:34px; height:34px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; transition:all 0.15s; }
 .btn-icon:hover { border-color:var(--accent); }
