@@ -1,0 +1,58 @@
+.content { padding: 20px 24px 48px; }
+
+.pageHeader { margin-bottom: 20px; }
+.pageTitle { font-size: 20px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
+.pageSubtitle { font-size: 12px; color: var(--muted2); }
+
+.sectionLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  margin: 20px 0 6px;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cardTitle { font-size: 13px; font-weight: 600; color: var(--text); }
+.cardBody  { padding: 16px; }
+
+.cardBadge { font-size: 10px; padding: 2px 8px; border-radius: 20px; }
+.badgeLive {
+  background: rgba(16,217,160,0.15);
+  color: var(--accent, #10d9a0);
+  border: 1px solid rgba(16,217,160,0.2);
+}
+.badgeInfo {
+  background: rgba(79,142,255,0.15);
+  color: #4f8eff;
+  border: 1px solid rgba(79,142,255,0.2);
+}
+
+/* ── Grid ────────────────────────────────────────────────── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+.loadingBox {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--muted2);
+  font-size: 13px;
+}

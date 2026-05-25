@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react';
 
 const NAV_ITEMS = [
-  { label: '대시보드', href: '#',       active: true },
-  { label: '상관관계', href: '#corr' },
-  { label: '자금흐름', href: '#flow' },
-  { label: '섹터',    href: '#sector' },
-  { label: '알림',    href: '#alerts' },
+  { label: '대시보드', href: '/',            key: 'dashboard' },
+  { label: '상관관계', href: '/correlation',  key: 'correlation' },
+  { label: '자금흐름', href: '#flow',         key: 'flow' },
+  { label: '섹터',    href: '#sector',        key: 'sector' },
+  { label: '알림',    href: '#alerts',        key: 'alerts' },
 ];
 
-export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now }) {
+export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now, activePage = 'dashboard' }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -23,7 +23,7 @@ export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now }
             <a
               key={item.label}
               href={item.href}
-              className={`topbar-nav-item${item.active ? ' active' : ''}`}
+              className={`topbar-nav-item${item.key === activePage ? ' active' : ''}`}
             >
               {item.label}
             </a>

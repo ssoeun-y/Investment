@@ -259,6 +259,7 @@ export default function Home() {
         onLogin={() => setShowLoginModal(true)}
         onLogout={handleLogout}
         now={now}
+        activePage="dashboard"
       />
 
       <div className={styles.content}>
