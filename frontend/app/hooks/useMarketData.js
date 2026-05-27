@@ -56,13 +56,8 @@ export function useMarketData() {
             console.log(`[HISTORY] btc: ${btc?.length}건, nasdaq: ${nasdaq?.length}건, kospi: ${kospi?.length}건`);
             return { btc, nasdaq, kospi };
         } catch (e) {
-            console.warn('[HISTORY] 실패, 더미 데이터 사용:', e.message);
-            const now = Date.now();
-            return {
-                btc:    Array.from({ length: 24 }, (_, i) => [now - (23-i)*3600000, 95000000 + Math.sin(i*0.5)*2000000]),
-                nasdaq: Array.from({ length: 24 }, (_, i) => [now - (23-i)*3600000, 18000 + Math.sin(i*0.3)*200]),
-                kospi:  Array.from({ length: 24 }, (_, i) => [now - (23-i)*3600000, 2700  + Math.sin(i*0.4)*30]),
-            };
+            console.warn('[HISTORY] 실패:', e.message);
+            return { btc: [], nasdaq: [], kospi: [] };
         }
     };
 

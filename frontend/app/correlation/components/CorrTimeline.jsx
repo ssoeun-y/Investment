@@ -202,6 +202,12 @@ export default function CorrTimeline({ fetchCrossMarketHistory, chartsReady }) {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--muted2)', fontSize:13 }}>
               로딩 중...
             </div>
+          ) : corrData.length === 0 ? (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:8, color:'var(--muted2)', fontSize:13 }}>
+              <span style={{ fontSize:20 }}>📡</span>
+              <span>히스토리 데이터 없음</span>
+              <span style={{ fontSize:11 }}>백엔드 /api/market/history 연동 후 표시됩니다</span>
+            </div>
           ) : (
             <canvas ref={chartRef} />
           )}
