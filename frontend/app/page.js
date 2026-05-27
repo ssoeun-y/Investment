@@ -260,6 +260,9 @@ export default function Home() {
         onLogout={handleLogout}
         now={now}
         activePage="dashboard"
+        stockData={stockData}
+        krStockData={krStockData}
+        cryptoData={cryptoData}
       />
 
       <div className={styles.content}>

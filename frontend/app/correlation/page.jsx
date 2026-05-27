@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Script from 'next/script';
 import { useAuth }       from '../hooks/useAuth';
 import { useMarketData } from '../hooks/useMarketData';
@@ -31,6 +31,16 @@ export default function CorrelationPage() {
     return () => clearInterval(id);
   }, []);
 
+  // BTC×NVDA 상관계수 proxy (방향 기반 근사)
+  const corrProxy = useMemo(() => {
+    const btcChg  = (cryptoData || []).find(c => c.symbol === 'BTC')?.price_change_percentage_24h ?? 0;
+    const nvdaChg = (stockData  || []).find(s => s.symbol === 'NVDA')?.change ?? 0;
+    const raw = btcChg * nvdaChg > 0
+      ? Math.min(0.4 + (1 - Math.abs(btcChg - nvdaChg) * 0.02), 0.99)
+      : Math.max(-0.4 - Math.abs(btcChg - nvdaChg) * 0.02, -0.99);
+    return isNaN(raw) ? 0 : raw;
+  }, [cryptoData, stockData]);
+
   return (
     <>
       <Script
@@ -48,6 +58,9 @@ export default function CorrelationPage() {
         onLogout={handleLogout}
         now={now}
         activePage="correlation"
+        stockData={stockData}
+        krStockData={krStockData}
+        cryptoData={cryptoData}
       />
 
       <div className={styles.content}>
@@ -60,25 +73,17 @@ export default function CorrelationPage() {
           </p>
         </div>
 
-        {/* ── Section 1: Sankey 자금 흐름 ─────────────────────── */}
-        <div className={styles.sectionLabel}>자금 흐름 다이어그램</div>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Sankey — 섹터 ↔ 코인 자금 이동</span>
-            <span className={`${styles.cardBadge} ${styles.badgeLive}`}>실시간</span>
-          </div>
-          <div className={styles.cardBody}>
-            <SankeyFlow
-              stockData={stockData}
-              krStockData={krStockData}
-              cryptoData={cryptoData}
-            />
-          </div>
+        {/* ── 1. Sankey 자금 흐름 — 카드 꽉 채움 ─────────────── */}
+        <div className={styles.sankeyCard}>
+          <SankeyFlow
+            stockData={stockData}
+            krStockData={krStockData}
+            cryptoData={cryptoData}
+          />
         </div>
 
-        {/* ── Section 2: 상관계수 시계열 ──────────────────────── */}
-        <div className={styles.sectionLabel}>상관계수 시계열</div>
-        <div className={styles.card}>
+        {/* ── 2. 상관계수 시계열 ───────────────────────────────── */}
+        <div className={styles.fullCard}>
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>BTC × NASDAQ 롤링 피어슨 상관계수</span>
             <span className={`${styles.cardBadge} ${styles.badgeInfo}`}>윈도우 7</span>
@@ -91,45 +96,39 @@ export default function CorrelationPage() {
           </div>
         </div>
 
-        {/* ── Section 3: 히트맵 + 디커플링 ───────────────────── */}
-        <div className={styles.twoCol}>
-          <div>
-            <div className={styles.sectionLabel}>종목별 상관관계 매트릭스</div>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>주식 × 코인 히트맵</span>
-              </div>
-              <div className={styles.cardBody}>
-                <CorrHeatmap
-                  stockData={stockData}
-                  krStockData={krStockData}
-                  cryptoData={cryptoData}
-                />
-              </div>
+        {/* ── 3. 히트맵 (60%) + 디커플링 (40%) — 나란히 ─────── */}
+        <div className={styles.rowTwo}>
+          <div className={styles.colPanel}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>주식 × 코인 히트맵</span>
+            </div>
+            <div className={styles.cardBody}>
+              <CorrHeatmap
+                stockData={stockData}
+                krStockData={krStockData}
+                cryptoData={cryptoData}
+              />
             </div>
           </div>
 
-          <div>
-            <div className={styles.sectionLabel}>디커플링 신호 감지</div>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardTitle}>실시간 이탈 감지</span>
-                <span className={`${styles.cardBadge} ${styles.badgeLive}`}>LIVE</span>
-              </div>
-              <div className={styles.cardBody}>
-                <DecouplingAlert
-                  stockData={stockData}
-                  krStockData={krStockData}
-                  cryptoData={cryptoData}
-                />
-              </div>
+          <div className={styles.colPanel}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardTitle}>실시간 이탈 감지</span>
+              <span className={`${styles.cardBadge} ${styles.badgeLive}`}>LIVE</span>
+            </div>
+            <div className={styles.cardBody}>
+              <DecouplingAlert
+                stockData={stockData}
+                krStockData={krStockData}
+                cryptoData={cryptoData}
+                corrProxy={corrProxy}
+              />
             </div>
           </div>
         </div>
 
-        {/* ── Section 4: 투자 유리도 비교 ─────────────────────── */}
-        <div className={styles.sectionLabel}>투자 유리도 비교</div>
-        <div className={styles.card}>
+        {/* ── 4. 투자 유리도 ──────────────────────────────────── */}
+        <div className={styles.fullCard}>
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>주식 vs 코인 — 5개 지표 실시간 비교</span>
           </div>
@@ -139,6 +138,7 @@ export default function CorrelationPage() {
               krStockData={krStockData}
               cryptoData={cryptoData}
               fearGreed={fearGreed}
+              corrProxy={corrProxy}
             />
           </div>
         </div>

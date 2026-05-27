@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import SearchDropdown from './SearchDropdown';
 
 const NAV_ITEMS = [
   { label: '대시보드', href: '/',            key: 'dashboard' },
@@ -6,9 +7,10 @@ const NAV_ITEMS = [
   { label: '자금흐름', href: '#flow',         key: 'flow' },
   { label: '섹터',    href: '#sector',        key: 'sector' },
   { label: '알림',    href: '#alerts',        key: 'alerts' },
+  { label: '마이페이지', href: '/mypage',      key: 'mypage' },
 ];
 
-export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now, activePage = 'dashboard' }) {
+export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now, activePage = 'dashboard', stockData, krStockData, cryptoData }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -40,12 +42,11 @@ export default function Topbar({ isLoggedIn, isLoading, onLogin, onLogout, now, 
           </div>
         )}
 
-        <div className="search-box">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="7" cy="7" r="5" /><path d="M11 11l3 3" />
-          </svg>
-          <span>종목 검색...</span>
-        </div>
+        <SearchDropdown
+          stockData={stockData}
+          krStockData={krStockData}
+          cryptoData={cryptoData}
+        />
 
         <div className="btn-icon">🔔</div>
         <div className="btn-icon">⚙️</div>
