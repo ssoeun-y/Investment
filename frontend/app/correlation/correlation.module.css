@@ -1,25 +1,45 @@
 .content { padding: 20px 24px 48px; }
 
-.pageHeader { margin-bottom: 20px; }
-.pageTitle { font-size: 20px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
-.pageSubtitle { font-size: 12px; color: var(--muted2); }
+.pageHeader { margin-bottom: 16px; }
+.pageTitle   { font-size: 20px; font-weight: 700; color: var(--text); margin: 0 0 4px; }
+.pageSubtitle{ font-size: 12px; color: var(--muted2); }
 
-.sectionLabel {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted2);
-  margin: 20px 0 6px;
+/* ── Full-width card ─────────────────────────────────── */
+.fullCard {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
 }
 
-/* ── Cards ───────────────────────────────────────────────── */
-.card {
+/* Sankey: no padding, SVG fills edge-to-edge */
+.sankeyCard {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  min-height: 400px;
+  line-height: 0; /* remove extra space below SVG */
+}
+
+/* ── 60/40 Row ───────────────────────────────────────── */
+.rowTwo {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.colPanel {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
 }
+
+/* ── Card internals (reused in fullCard / colPanel) ─── */
 .cardHeader {
   display: flex;
   align-items: center;
@@ -42,14 +62,7 @@
   border: 1px solid rgba(79,142,255,0.2);
 }
 
-/* ── Grid ────────────────────────────────────────────────── */
-.twoCol {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* ── Loading ─────────────────────────────────────────────── */
+/* ── Loading ─────────────────────────────────────────── */
 .loadingBox {
   text-align: center;
   padding: 48px 0;

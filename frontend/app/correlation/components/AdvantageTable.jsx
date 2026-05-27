@@ -32,7 +32,7 @@ function MiniBar({ value, max, color }) {
   );
 }
 
-export default function AdvantageTable({ stockData, krStockData, cryptoData, fearGreed }) {
+export default function AdvantageTable({ stockData, krStockData, cryptoData, fearGreed, corrProxy }) {
   const { metrics, verdict } = useMemo(() => {
     const cryptos   = cryptoData  || [];
     const stocks    = stockData   || [];
@@ -53,13 +53,18 @@ export default function AdvantageTable({ stockData, krStockData, cryptoData, fea
     const cryptoVolUSD = cryptos.reduce((s, c) => s + (c.total_volume ?? 0), 0);
     const stockVolUSD  = stocks.reduce((s, s2) => s + (s2.volume ?? 0) * (s2.price ?? 1), 0);
 
-    // BTC×NVDA 상관계수 (일중 방향 기반 근사)
-    const btcChg  = cryptos.find(c => c.symbol === 'BTC')?.price_change_percentage_24h ?? 0;
-    const nvdaChg = stocks.find(s => s.symbol === 'NVDA')?.change ?? 0;
-    const rawCorr = btcChg * nvdaChg > 0
-      ? Math.min(0.4 + (1 - Math.abs(btcChg - nvdaChg) * 0.02), 0.99)
-      : Math.max(-0.4 - Math.abs(btcChg - nvdaChg) * 0.02, -0.99);
-    const corrAbs = Math.abs(isNaN(rawCorr) ? 0 : rawCorr);
+    // page.jsx에서 계산된 corrProxy 사용, 없으면 자체 근사
+    let corrAbs;
+    if (corrProxy != null) {
+      corrAbs = Math.abs(corrProxy);
+    } else {
+      const btcChg  = cryptos.find(c => c.symbol === 'BTC')?.price_change_percentage_24h ?? 0;
+      const nvdaChg = stocks.find(s => s.symbol === 'NVDA')?.change ?? 0;
+      const rawCorr = btcChg * nvdaChg > 0
+        ? Math.min(0.4 + (1 - Math.abs(btcChg - nvdaChg) * 0.02), 0.99)
+        : Math.max(-0.4 - Math.abs(btcChg - nvdaChg) * 0.02, -0.99);
+      corrAbs = Math.abs(isNaN(rawCorr) ? 0 : rawCorr);
+    }
 
     const fgVal = fearGreed ? Number(fearGreed.value) : null;
 
