@@ -19,9 +19,14 @@ public class OAuthController {
         if (user == null) {
             return CommonResponse.ok(Map.of("isLoggedIn", false));
         }
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getUserId());
+        userInfo.put("name", user.getAttributes().get("name"));
+        userInfo.put("nickname", user.getAttributes().get("nickname"));
+
         Map<String, Object> sessionInfo = new HashMap<>();
         sessionInfo.put("isLoggedIn", true);
-        sessionInfo.put("user", user.getAttributes());
+        sessionInfo.put("user", userInfo);
         return CommonResponse.ok(sessionInfo);
     }
 }
