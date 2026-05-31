@@ -5,6 +5,7 @@ import { useMarketData } from '../hooks/useMarketData';
 import Topbar            from '../components/Topbar';
 import LoginModal        from '../components/LoginModal';
 import Watchlist         from './components/Watchlist';
+import MyPosts           from './components/MyPosts';
 import Portfolio         from './components/Portfolio';
 import AlertSettings     from './components/AlertSettings';
 import styles            from './mypage.module.css';
@@ -12,6 +13,7 @@ import '../styles/dashboard.css';
 
 const TABS = [
   { key: 'watchlist',  label: '관심목록' },
+  { key: 'myposts',    label: '내 글' },
   { key: 'portfolio',  label: '포트폴리오' },
   { key: 'alerts',     label: '알림설정' },
 ];
@@ -94,6 +96,7 @@ export default function MyPage() {
                 cryptoData={cryptoData}
               />
             )}
+            {activeTab === 'myposts'   && <MyPosts />}
             {activeTab === 'portfolio' && <Portfolio />}
             {activeTab === 'alerts'    && (
               <AlertSettings

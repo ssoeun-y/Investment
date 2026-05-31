@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { label: '자금흐름', href: '#flow',         key: 'flow' },
   { label: '섹터',    href: '#sector',        key: 'sector' },
   { label: '알림',    href: '#alerts',        key: 'alerts' },
+  { label: '토론',      href: '/community',    key: 'community' },
   { label: '마이페이지', href: '/mypage',      key: 'mypage' },
 ];
 
