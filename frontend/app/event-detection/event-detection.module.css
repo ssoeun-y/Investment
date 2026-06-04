@@ -1,0 +1,137 @@
+.page { padding: 80px 28px 48px; }
+
+/* ── Zone A ───────────────────────────────────────────────── */
+.zoneA { margin-bottom: 16px; }
+
+.zoneAHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.zoneACount { display: flex; gap: 14px; font-size: 12px; font-weight: 600; }
+.countRed    { color: #f05a5a; }
+.countYellow { color: #f5c842; }
+.countGreen  { color: #10d9a0; }
+.liveBadge {
+  font-size: 11px; color: #10d9a0;
+  font-family: 'DM Mono', monospace;
+  animation: livePulse 2s infinite;
+}
+@keyframes livePulse { 0%,100%{ opacity:1 } 50%{ opacity:0.35 } }
+
+.zoneACards { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; }
+
+.summaryCard {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 12px; cursor: pointer; transition: transform 0.15s;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.summaryCard:hover { transform: translateY(-2px); }
+.summaryCardIcon   { font-size: 20px; }
+.summaryCardLabel  { font-size: 10px; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.05em; }
+.summaryCardSymbol { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+.summaryCardValue  { font-size: 12px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.summaryCardNormal { font-size: 11px; color: var(--muted); }
+
+/* ── Zone B + C 2-column ─────────────────────────────────── */
+.zoneBC { display: grid; grid-template-columns: 65% 1fr; gap: 16px; align-items: start; }
+
+/* ── Zone B ───────────────────────────────────────────────── */
+.zoneB {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.feedHeader {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.feedTitle { font-size: 13px; font-weight: 600; color: var(--text); }
+.filterRow { display: flex; gap: 4px; }
+.filterBtn {
+  padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted2); transition: all 0.15s;
+}
+.filterBtn:hover { border-color: var(--muted); color: var(--text); }
+.filterActive { background: var(--bg3); border-color: rgba(255,255,255,0.15); color: var(--text); }
+
+.emptyFeed {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 60px 24px; color: var(--muted2); font-size: 13px; text-align: center;
+}
+.feedList { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── 이벤트 카드 ───────────────────────────────────────────── */
+.eventCard {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.eventCardTop { display: flex; align-items: center; justify-content: space-between; }
+.eventSev { font-size: 11px; font-family: 'DM Mono', monospace; }
+.eventAsset {
+  font-size: 10px; color: var(--muted); background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px;
+}
+.eventTitle { display: flex; align-items: center; gap: 8px; }
+.eventSymbol { font-size: 15px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--text); }
+.eventType   { font-size: 12px; color: var(--muted2); }
+
+.eventStats { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.eventValue { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); }
+.eventPrice { font-size: 12px; color: var(--muted2); }
+
+.whyBox {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px; padding: 10px 12px;
+}
+.whyLabel { font-size: 11px; font-weight: 600; color: #f5c842; margin-bottom: 5px; }
+.whyText  { font-size: 12px; color: var(--muted2); line-height: 1.65; }
+
+.relatedRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.relatedLabel { font-size: 11px; color: var(--muted); }
+.relatedTag {
+  font-size: 10px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 7px; color: var(--muted2); font-family: 'DM Mono', monospace;
+}
+
+/* ── Zone C ───────────────────────────────────────────────── */
+.zoneC { display: flex; flex-direction: column; gap: 12px; }
+
+.panelCard { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.panelCardTitle {
+  font-size: 11px; font-weight: 600; color: var(--text);
+  margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+.notifBtn {
+  width: 100%; padding: 10px;
+  background: rgba(16,217,160,0.1); border: 1px solid rgba(16,217,160,0.3);
+  border-radius: 8px; color: #10d9a0; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.notifBtn:hover { background: rgba(16,217,160,0.2); }
+.notifOn { font-size: 12px; color: #10d9a0; padding: 6px 0; }
+
+.conditionList { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.conditionTitle { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.conditionItem { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted2); cursor: pointer; }
+.conditionItem input[type="checkbox"] { accent-color: #10d9a0; cursor: pointer; }
+
+.summaryRow {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--muted2);
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.summaryRow:last-child { border-bottom: none; }
+
+.indicatorTable { width: 100%; border-collapse: collapse; }
+.indicatorTable th {
+  color: var(--muted); font-size: 10px; text-align: left;
+  padding: 4px 0; border-bottom: 1px solid var(--border); font-weight: 500;
+}
+.indicatorTable td {
+  padding: 7px 0; vertical-align: middle;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.indicatorTable tr:last-child td { border-bottom: none; }
+.indSymbol { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--text); font-size: 12px; }
+.indRsiCell { font-size: 10px; line-height: 1.5; }
