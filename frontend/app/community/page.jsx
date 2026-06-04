@@ -214,7 +214,7 @@ export default function CommunityPage() {
   const handleDeleteComment = async (commentId) => {
     if (!confirm('댓글을 삭제하시겠습니까?')) return;
     try {
-      const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`/api/posts/${selectedPost?.id}/comments/${commentId}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error();
       setComments(prev => prev.filter(c => c.id !== commentId));
       const dec = p => ({ ...p, commentCount: Math.max(0, (p.commentCount ?? 1) - 1) });
@@ -227,7 +227,7 @@ export default function CommunityPage() {
   const handleCommentLike = async (commentId) => {
     if (!isLoggedIn) { setShowLoginModal(true); return; }
     try {
-      const res = await fetch(`/api/comments/${commentId}/like`, { method: 'POST', credentials: 'include' });
+      const res = await fetch(`/api/posts/${selectedPost?.id}/comments/${commentId}/like`, { method: 'POST', credentials: 'include' });
       if (!res.ok) throw new Error();
       const data = await res.json();
       const { liked, likeCount } = data.result ?? data;
@@ -239,7 +239,7 @@ export default function CommunityPage() {
   const handleCommentEditSubmit = async (commentId) => {
     if (!editComment?.content?.trim()) return;
     try {
-      const res = await fetch(`/api/comments/${commentId}`, {
+      const res = await fetch(`/api/posts/${selectedPost?.id}/comments/${commentId}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -331,7 +331,7 @@ export default function CommunityPage() {
                   <div className={styles.postTitle}>{post.title}</div>
                   <div className={styles.postMeta}>
                     <span className={styles.postAuthor}>
-                      {post.author?.nickname ?? post.author?.name ?? '익명'}
+                      {post.authorName ?? '익명'}
                     </span>
                     <span className={styles.metaDot}>·</span>
                     <button
@@ -373,15 +373,15 @@ export default function CommunityPage() {
             <div className={styles.modalBody}>
               <h2 className={styles.detailTitle}>{selectedPost.title}</h2>
               <div className={styles.detailMeta}>
-                <span>{selectedPost.author?.nickname ?? selectedPost.author?.name ?? '익명'}</span>
+                <span>{selectedPost.authorName ?? '익명'}</span>
                 <span className={styles.metaDot}>·</span>
                 <span>{fmtDate(selectedPost.createdAt)}</span>
                 {selectedPost.updatedAt && (
                   <span style={{ fontSize:10, color:'var(--muted)' }}>(수정됨)</span>
                 )}
-                {isOwn(selectedPost.author?.id) && (
+                {isOwn(selectedPost.authorId) && (
                   <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
-                    <button className={styles.textBtn} onClick={e => openEdit(selectedPost, e)}>수정</button>
+                    <button className={styles.textBtn} onClick={e => openWrite(selectedPost, e)}>수정</button>
                     <button
                       className={`${styles.textBtn} ${styles.danger}`}
                       onClick={() => handleDeletePost(selectedPost.id)}
@@ -415,11 +415,11 @@ export default function CommunityPage() {
                       <div key={comment.id} className={styles.commentItem}>
                         <div className={styles.commentMeta}>
                           <span className={styles.commentAuthor}>
-                            {comment.author?.nickname ?? comment.author?.name ?? '익명'}
+                            {comment.authorName ?? '익명'}
                           </span>
                           <span className={styles.metaDot}>·</span>
                           <span className={styles.commentTime}>{fmtDate(comment.createdAt)}</span>
-                          {isOwn(comment.author?.id) && (
+                          {isOwn(comment.authorId) && (
                             <div style={{ marginLeft:'auto', display:'flex', gap:4 }}>
                               <button
                                 className={styles.textBtn}

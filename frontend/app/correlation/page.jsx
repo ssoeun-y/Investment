@@ -15,7 +15,6 @@ import                        '../styles/dashboard.css';
 
 export default function CorrelationPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [chartsReady, setChartsReady]       = useState(false);
   const [now, setNow]                       = useState('');
 
   const {
@@ -31,6 +30,7 @@ export default function CorrelationPage() {
     return () => clearInterval(id);
   }, []);
 
+
   // BTC×NVDA 상관계수 proxy (방향 기반 근사)
   const corrProxy = useMemo(() => {
     const btcChg  = (cryptoData || []).find(c => c.symbol === 'BTC')?.price_change_percentage_24h ?? 0;
@@ -43,10 +43,7 @@ export default function CorrelationPage() {
 
   return (
     <>
-      <Script
-        src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
-        onLoad={() => setChartsReady(true)}
-      />
+      <Script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
       {showLoginModal && (
         <LoginModal onLogin={handleKakaoLogin} onClose={() => setShowLoginModal(false)} />
       )}
@@ -91,7 +88,6 @@ export default function CorrelationPage() {
           <div className={styles.cardBody}>
             <CorrTimeline
               fetchCrossMarketHistory={fetchCrossMarketHistory}
-              chartsReady={chartsReady}
             />
           </div>
         </div>

@@ -32,13 +32,28 @@ const DAYS_CONFIG = [
   { label: '1M', value: 30 },
 ];
 
-export default function CorrTimeline({ fetchCrossMarketHistory, chartsReady }) {
+export default function CorrTimeline({ fetchCrossMarketHistory }) {
   const [days, setDays]           = useState(1);
   const [corrData, setCorrData]   = useState([]);
   const [labels, setLabels]       = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [chartJsReady, setChartJsReady] = useState(
+    typeof window !== 'undefined' && !!window.Chart
+  );
   const chartRef   = useRef(null);
   const chartInst  = useRef(null);
+
+  // Chart.js 로드 완료 감지 (캐시 히트든 신규 로드든)
+  useEffect(() => {
+    if (chartJsReady) return;
+    const id = setInterval(() => {
+      if (typeof window !== 'undefined' && window.Chart) {
+        setChartJsReady(true);
+        clearInterval(id);
+      }
+    }, 100);
+    return () => clearInterval(id);
+  }, [chartJsReady]);
 
   // ─── 데이터 로드 + 롤링 계산 ─────────────────────────────
   useEffect(() => {
@@ -64,7 +79,7 @@ export default function CorrTimeline({ fetchCrossMarketHistory, chartsReady }) {
 
   // ─── Chart.js 렌더링 ─────────────────────────────────────
   useEffect(() => {
-    if (loading || !chartRef.current || !chartsReady) return;
+    if (loading || !chartRef.current || !chartJsReady) return;
     if (typeof window === 'undefined' || !window.Chart) return;
     if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; }
 
@@ -148,7 +163,7 @@ export default function CorrTimeline({ fetchCrossMarketHistory, chartsReady }) {
     return () => {
       if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; }
     };
-  }, [corrData, labels, loading, chartsReady]);
+  }, [corrData, labels, loading, chartJsReady]);
 
   // ─── 사이드 통계 ─────────────────────────────────────────
   const curr     = corrData.length > 0 ? corrData[corrData.length - 1]     : null;

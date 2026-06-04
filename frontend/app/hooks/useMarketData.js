@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const MARKET_API_ROOT = '/api/market';
 
@@ -42,7 +42,7 @@ export function useMarketData() {
         }
     };
 
-    const fetchCrossMarketHistory = async (days = 1) => {
+    const fetchCrossMarketHistory = useCallback(async (days = 1) => {
         const url = `${MARKET_API_ROOT}/history?days=${days}`;
         console.log(`[HISTORY] 요청 → ${url}`);
         console.time(`[HISTORY] days=${days} 응답시간`);
@@ -59,7 +59,7 @@ export function useMarketData() {
             console.warn('[HISTORY] 실패:', e.message);
             return { btc: [], nasdaq: [], kospi: [] };
         }
-    };
+    }, []);
 
     useEffect(() => {
         const init = async () => {
