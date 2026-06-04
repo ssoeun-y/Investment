@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Script from 'next/script';
 import { useAuth }       from '../hooks/useAuth';
 import { useMarketData } from '../hooks/useMarketData';
 import Topbar            from '../components/Topbar';
@@ -16,6 +17,18 @@ function timeAgo(ts) {
   if (d < 3600)  return `${Math.floor(d / 60)}분 전`;
   if (d < 86400) return `${Math.floor(d / 3600)}시간 전`;
   return `${Math.floor(d / 86400)}일 전`;
+}
+
+// ─── Mod 2: history 없는 종목 지표 ────────────────────────────
+function getStatusFromChange(change) {
+  if (change == null) return { label: '--', color: 'var(--muted)' };
+  if (change <= -5)   return { label: '강한 하락 압력', color: '#f05a5a' };
+  if (change <= -2)   return { label: '하락 압력',      color: '#f05a5a' };
+  if (change <= -0.5) return { label: '소폭 하락',      color: '#f5c842' };
+  if (change < 0.5)   return { label: '보합',           color: 'var(--muted2)' };
+  if (change < 2)     return { label: '소폭 상승',      color: '#10d9a0' };
+  if (change < 5)     return { label: '상승 모멘텀',    color: '#10d9a0' };
+  return               { label: '강한 상승',            color: '#10d9a0' };
 }
 
 // ─── 지표 계산 ─────────────────────────────────────────────────
@@ -52,10 +65,10 @@ function calcSupport(prices, period = 20) {
   return Math.min(...prices.slice(-period));
 }
 
-// ─── 이벤트 감지 ───────────────────────────────────────────────
+// ─── 이벤트 감지 (Mod 3 포함) ──────────────────────────────────
 function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, volHistRef, tsRef }) {
-  const events  = [];
-  const nowTs   = Date.now();
+  const events = [];
+  const nowTs  = Date.now();
 
   const btcPrices    = (history?.btc    || []).map(d => d[1]);
   const nasdaqPrices = (history?.nasdaq || []).map(d => d[1]);
@@ -101,17 +114,17 @@ function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, 
     if (vol) volHistRef.current[coin.symbol] = vol;
   }
 
-  // ── 2. 거래량 급등 (주식 24h 변화 ±5%+ 기준) ─────────────────
+  // ── 2. 거래량 급등 (주식/코인 |변화| ≥ 3%) ── Mod 3A: 3%로 낮춤
   for (const stock of [...stockData, ...krStockData]) {
     const abs = Math.abs(stock.change ?? 0);
-    if (abs >= 5) {
+    if (abs >= 3) {
       add({
         id:           `vol_${stock.symbol}`,
         category:     'volume',
         conditionKey: 'volume',
         type:         '거래량 급등',
         symbol:       stock.symbol,
-        severity:     abs >= 8 ? 'red' : 'yellow',
+        severity:     abs >= 8 ? 'red' : abs >= 5 ? 'yellow' : 'yellow',
         valueText:    `${(stock.change ?? 0) >= 0 ? '+' : ''}${(stock.change ?? 0).toFixed(2)}%`,
         price:        stock.price,
         change:       stock.change,
@@ -120,6 +133,30 @@ function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, 
           : '거래량 급등 + 가격 하락 = 투매 신호. 손절 라인을 재확인하거나 관망이 유효한 구간입니다.',
         related:   (stock.change ?? 0) > 0 ? ['BTC', 'ETH'] : ['BTC'],
         assetType: 'stock',
+      });
+    }
+  }
+
+  // 코인도 ≥ 3% 포함 (BTC는 RSI/BB로 별도 처리하므로 제외)
+  for (const coin of cryptoData) {
+    if (coin.symbol === 'BTC') continue;
+    const abs = Math.abs(coin.price_change_percentage_24h ?? 0);
+    if (abs >= 3) {
+      add({
+        id:           `vol_${coin.symbol}`,
+        category:     'volume',
+        conditionKey: 'volume',
+        type:         '거래량 급등',
+        symbol:       coin.symbol,
+        severity:     abs >= 7 ? 'red' : 'yellow',
+        valueText:    pct(coin.price_change_percentage_24h),
+        price:        coin.current_price,
+        change:       coin.price_change_percentage_24h,
+        explanation:  (coin.price_change_percentage_24h ?? 0) > 0
+          ? '코인 강한 상승 모멘텀입니다. 거래량과 BTC 방향을 함께 확인하세요.'
+          : '코인 강한 하락입니다. 손절 라인을 점검하고 관망을 고려하세요.',
+        related:   ['BTC', 'NVDA'],
+        assetType: 'coin',
       });
     }
   }
@@ -208,7 +245,7 @@ function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, 
     }
   }
 
-  // ── 6. 동조/디커플링 — BTC vs 반도체 ────────────────────────
+  // ── 6. 동조/디커플링 — 항상 생성 (Mod 3B) ──────────────────
   const btcChg  = btcCoin?.price_change_percentage_24h ?? 0;
   const semiAll = [
     ...stockData.filter(s => ['NVDA','AMD','AAPL','MSFT','INTC'].includes(s.symbol)),
@@ -217,25 +254,25 @@ function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, 
   if (semiAll.length > 0) {
     const avgSemi = semiAll.reduce((s, st) => s + (st.change ?? 0), 0) / semiAll.length;
     const diff    = Math.abs(btcChg - avgSemi);
-    if (diff > 3) {
-      const sameDir = (btcChg > 0 && avgSemi > 0) || (btcChg < 0 && avgSemi < 0);
-      add({
-        id:           'correlation_main',
-        category:     'correlation',
-        conditionKey: 'correlation',
-        type:         sameDir ? '동조 강화' : '디커플링 감지',
-        symbol:       'BTC vs 반도체',
-        severity:     diff > 5 ? 'red' : 'yellow',
-        valueText:    `방향차 ${diff.toFixed(1)}%p`,
-        price:        null,
-        change:       null,
-        explanation:  sameDir
-          ? `BTC(${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(1)}%)와 반도체(${avgSemi >= 0 ? '+' : ''}${avgSemi.toFixed(1)}%)가 같은 방향으로 움직이고 있습니다. 글로벌 리스크온/오프 흐름에 연동된 구간입니다.`
-          : `BTC(${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(1)}%)와 반도체(${avgSemi >= 0 ? '+' : ''}${avgSemi.toFixed(1)}%)가 반대로 움직이고 있습니다. 각자 개별 재료로 움직이는 구간이므로 코인과 주식을 따로 판단하세요.`,
-        related:      ['NVDA', '삼성전자', 'BTC'],
-        assetType:    'both',
-      });
-    }
+    const sameDir = (btcChg > 0 && avgSemi > 0) || (btcChg < 0 && avgSemi < 0);
+    add({
+      id:           'correlation_main',
+      category:     'correlation',
+      conditionKey: 'correlation',
+      type:         sameDir ? (diff <= 2 ? '동조 안정' : '동조 강화') : '디커플링 감지',
+      symbol:       'BTC vs 반도체',
+      severity:     diff > 5 ? 'red' : diff > 2 ? 'yellow' : 'green',
+      valueText:    `방향차 ${diff.toFixed(1)}%p`,
+      price:        null,
+      change:       null,
+      explanation:  sameDir
+        ? diff <= 2
+          ? `BTC(${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(1)}%)와 반도체(${avgSemi >= 0 ? '+' : ''}${avgSemi.toFixed(1)}%)가 유사하게 움직이고 있습니다. 동조 안정 구간입니다.`
+          : `BTC(${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(1)}%)와 반도체(${avgSemi >= 0 ? '+' : ''}${avgSemi.toFixed(1)}%)가 같은 방향으로 움직이고 있습니다. 글로벌 리스크온/오프 흐름에 연동된 구간입니다.`
+        : `BTC(${btcChg >= 0 ? '+' : ''}${btcChg.toFixed(1)}%)와 반도체(${avgSemi >= 0 ? '+' : ''}${avgSemi.toFixed(1)}%)가 반대로 움직이고 있습니다. 각자 개별 재료로 움직이는 구간이므로 코인과 주식을 따로 판단하세요.`,
+      related:      ['NVDA', '삼성전자', 'BTC'],
+      assetType:    'both',
+    });
   }
 
   // ── 7. 공포탐욕 극단값 ──────────────────────────────────────
@@ -259,8 +296,75 @@ function detectEvents({ cryptoData, stockData, krStockData, fearGreed, history, 
     });
   }
 
+  // ── 8. 24h 최대 상승/하락 코인 — 항상 생성 (Mod 3C) ─────────
+  if (cryptoData.length > 1) {
+    const sorted  = [...cryptoData].sort((a, b) => (b.price_change_percentage_24h ?? 0) - (a.price_change_percentage_24h ?? 0));
+    const topCoin = sorted[0];
+    const botCoin = sorted[sorted.length - 1];
+
+    if (topCoin) {
+      add({
+        id:           `extreme_up_${topCoin.symbol}`,
+        category:     'volume',
+        conditionKey: 'volume',
+        type:         '24h 최대 상승',
+        symbol:       topCoin.symbol,
+        severity:     Math.abs(topCoin.price_change_percentage_24h ?? 0) >= 7 ? 'red' : 'yellow',
+        valueText:    pct(topCoin.price_change_percentage_24h),
+        price:        topCoin.current_price,
+        change:       topCoin.price_change_percentage_24h,
+        explanation:  `전체 코인 중 24시간 최대 상승 종목입니다. 강한 매수세 또는 개별 호재가 있을 수 있습니다. 거래량 동반 여부를 확인하세요.`,
+        related:      ['BTC', 'ETH'],
+        assetType:    'coin',
+      });
+    }
+    if (botCoin && botCoin.symbol !== topCoin?.symbol) {
+      add({
+        id:           `extreme_down_${botCoin.symbol}`,
+        category:     'volume',
+        conditionKey: 'volume',
+        type:         '24h 최대 하락',
+        symbol:       botCoin.symbol,
+        severity:     Math.abs(botCoin.price_change_percentage_24h ?? 0) >= 7 ? 'red' : 'yellow',
+        valueText:    pct(botCoin.price_change_percentage_24h),
+        price:        botCoin.current_price,
+        change:       botCoin.price_change_percentage_24h,
+        explanation:  `전체 코인 중 24시간 최대 하락 종목입니다. 투자심리 악화 또는 개별 악재를 확인하세요. 하락세 연장 여부에 주의하세요.`,
+        related:      ['BTC'],
+        assetType:    'coin',
+      });
+    }
+  }
+
+  // ── 9. 시장 방향성 — 항상 생성 (Mod 3D) ────────────────────
+  if (cryptoData.length > 0 && stockData.length > 0) {
+    const cryptoAvg = cryptoData.reduce((s, c) => s + (c.price_change_percentage_24h ?? 0), 0) / cryptoData.length;
+    const stockAvg  = stockData.reduce((s, st) => s + (st.change ?? 0), 0) / stockData.length;
+    const bothUp    = cryptoAvg > 0.5 && stockAvg > 0.5;
+    const bothDown  = cryptoAvg < -0.5 && stockAvg < -0.5;
+    const dir       = bothUp ? 'risk-on' : bothDown ? 'risk-off' : 'mixed';
+    add({
+      id:           'market_direction',
+      category:     'correlation',
+      conditionKey: 'correlation',
+      type:         dir === 'risk-on' ? '리스크온 장세' : dir === 'risk-off' ? '리스크오프 장세' : '혼조세',
+      symbol:       '시장 방향성',
+      severity:     dir === 'risk-on' ? 'green' : dir === 'risk-off' ? 'red' : 'yellow',
+      valueText:    `코인 ${cryptoAvg >= 0 ? '+' : ''}${cryptoAvg.toFixed(1)}% / 주식 ${stockAvg >= 0 ? '+' : ''}${stockAvg.toFixed(1)}%`,
+      price:        null,
+      change:       null,
+      explanation:  dir === 'risk-on'
+        ? `코인 평균 ${cryptoAvg >= 0 ? '+' : ''}${cryptoAvg.toFixed(1)}%, 주식 평균 ${stockAvg >= 0 ? '+' : ''}${stockAvg.toFixed(1)}% — 전반적 리스크온 장세입니다. 위험 자산 선호 구간입니다.`
+        : dir === 'risk-off'
+        ? `코인 평균 ${cryptoAvg.toFixed(1)}%, 주식 평균 ${stockAvg.toFixed(1)}% — 리스크오프 장세입니다. 안전 자산으로의 이동을 고려하세요.`
+        : `코인(${cryptoAvg >= 0 ? '+' : ''}${cryptoAvg.toFixed(1)}%)과 주식(${stockAvg >= 0 ? '+' : ''}${stockAvg.toFixed(1)}%)이 혼조세입니다. 개별 종목 분석이 더 중요한 구간입니다.`,
+      related:      ['BTC', 'NVDA'],
+      assetType:    'both',
+    });
+  }
+
   const sevOrder = { red: 0, yellow: 1, green: 2 };
-  return events.sort((a, b) => sevOrder[a.severity] - sevOrder[b.severity]);
+  return events.sort((a, b) => (sevOrder[a.severity] ?? 3) - (sevOrder[b.severity] ?? 3));
 }
 
 // ─── Zone A 카드 정의 ──────────────────────────────────────────
@@ -278,13 +382,27 @@ const SEV_BG    = { red: 'rgba(240,90,90,0.08)', yellow: 'rgba(245,200,66,0.08)'
 
 const NOTIF_CONDITIONS = [
   { key: 'whale',         label: '고래 움직임' },
-  { key: 'volume',        label: '거래량 급등 (±5%+)' },
+  { key: 'volume',        label: '거래량 급등 (±3%+)' },
   { key: 'rsiOversold',   label: 'RSI 과매도 진입 (≤30)' },
   { key: 'rsiOverbought', label: 'RSI 과매수 진입 (≥70)' },
   { key: 'bb',            label: 'BB 상단 돌파 / 하단 이탈' },
   { key: 'fg',            label: '공포탐욕 극단값' },
   { key: 'correlation',   label: '동조/디커플링 전환' },
 ];
+
+// ─── Top Signal 카드 헬퍼 (Mod 1) ─────────────────────────────
+function getTopCardBorderColor(sig) {
+  if (sig.category === 'rsi') {
+    const rsi = parseFloat(sig.valueText.replace('RSI ', ''));
+    if (rsi <= 25 || rsi >= 75) return '#f05a5a';
+    if (rsi <= 35 || rsi >= 65) return '#f5c842';
+    return '#10d9a0';
+  }
+  const abs = Math.abs(sig.change ?? 0);
+  if (abs >= 7) return '#f05a5a';
+  if (abs >= 3) return '#f5c842';
+  return '#10d9a0';
+}
 
 // ─── 메인 ──────────────────────────────────────────────────────
 export default function EventDetectionPage() {
@@ -299,10 +417,14 @@ export default function EventDetectionPage() {
     whale: true, volume: true, rsiOversold: true,
     rsiOverbought: true, bb: false, fg: true, correlation: true,
   });
+  const [chartJsReady, setChartJsReady]     = useState(
+    typeof window !== 'undefined' && !!window.Chart
+  );
 
-  const volHistRef  = useRef({});
-  const tsRef       = useRef({});
-  const prevEvIds   = useRef(new Set());
+  const volHistRef   = useRef({});
+  const tsRef        = useRef({});
+  const prevEvIds    = useRef(new Set());
+  const sparkInstsRef = useRef({});
 
   const { isLoggedIn, isLoading, handleKakaoLogin, handleLogout } = useAuth();
   const { cryptoData, stockData, krStockData, fearGreed, fetchCrossMarketHistory } = useMarketData();
@@ -315,7 +437,19 @@ export default function EventDetectionPage() {
     return () => clearInterval(id);
   }, []);
 
-  // 히스토리 로드 (30일 → RSI 14 + BB 20 모두 충분)
+  // Chart.js 로드 감지
+  useEffect(() => {
+    if (chartJsReady) return;
+    const id = setInterval(() => {
+      if (typeof window !== 'undefined' && window.Chart) {
+        setChartJsReady(true);
+        clearInterval(id);
+      }
+    }, 100);
+    return () => clearInterval(id);
+  }, [chartJsReady]);
+
+  // 히스토리 로드
   const loadHistory = useCallback(() => {
     fetchCrossMarketHistory(30).then(data => {
       setHistoryData(data);
@@ -372,7 +506,71 @@ export default function EventDetectionPage() {
   const redCnt    = events.filter(e => e.severity === 'red').length;
   const yellowCnt = events.filter(e => e.severity === 'yellow').length;
 
-  // 종목별 지표 (Zone C 테이블)
+  // Mod 1: Top 3 Signal 카드
+  const topSignals = useMemo(() => {
+    const priorityOf = (e) => {
+      if (e.category === 'rsi') {
+        const rsi = parseFloat(e.valueText.replace('RSI ', ''));
+        return rsi <= 30 ? 0 : 4;
+      }
+      if (e.category === 'volume' && Math.abs(e.change ?? 0) >= 5) return 1;
+      if (e.category === 'feargreed') return 2;
+      if (e.category === 'correlation') return 3;
+      return 5;
+    };
+    return [...events].sort((a, b) => priorityOf(a) - priorityOf(b)).slice(0, 3);
+  }, [events]);
+
+  // Mod 1: 스파크라인 렌더링
+  useEffect(() => {
+    if (!chartJsReady || typeof window === 'undefined' || !window.Chart) return;
+
+    Object.values(sparkInstsRef.current).forEach(inst => inst?.destroy());
+    sparkInstsRef.current = {};
+
+    topSignals.forEach((sig, i) => {
+      const canvas = document.getElementById(`top-signal-${sig.symbol}-${i}`);
+      if (!canvas) return;
+
+      let prices;
+      if (sig.symbol === 'BTC' && historyData?.btc?.length) {
+        prices = historyData.btc.slice(-20).map(d => d[1]);
+      } else {
+        const chg = sig.change ?? 0;
+        prices = [100, 100 + chg / 5, 100 + chg / 3, 100 + chg / 2, 100 + chg];
+      }
+
+      const color = getTopCardBorderColor(sig);
+
+      sparkInstsRef.current[i] = new window.Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: prices.map((_, idx) => idx),
+          datasets: [{
+            data: prices,
+            borderColor: color,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: false,
+          }],
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          scales: { x: { display: false }, y: { display: false } },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        },
+      });
+    });
+
+    return () => {
+      Object.values(sparkInstsRef.current).forEach(inst => inst?.destroy());
+      sparkInstsRef.current = {};
+    };
+  }, [topSignals, historyData, chartJsReady]);
+
+  // Mod 2: 종목별 지표 (history 없는 종목은 change 기반)
   const indicators = useMemo(() => {
     const btcPx    = (historyData?.btc    || []).map(d => d[1]);
     const nasdaqPx = (historyData?.nasdaq || []).map(d => d[1]);
@@ -394,25 +592,30 @@ export default function EventDetectionPage() {
       if (bb.pct < 0)   return { label: `%B ${bb.pct.toFixed(2)}  🟡 과매도권`, color: '#f5c842' };
       return { label: `%B ${bb.pct.toFixed(2)}  🟢 정상`, color: '#10d9a0' };
     };
-    const noSig = { label: '--', color: 'var(--muted)' };
 
     const findC = sym => cryptoData.find(c => c.symbol === sym);
     const findS = sym => stockData.find(s => s.symbol === sym);
     const findK = sym => krStockData.find(s => s.symbol === sym);
 
+    const chgStatus = (change) => {
+      const s = getStatusFromChange(change);
+      return { label: s.label, color: s.color };
+    };
+
     return [
-      { symbol: 'BTC',      rsi: rsiSig(btcRSI),    bb: bbSig(btcBB),     change: findC('BTC')?.price_change_percentage_24h },
-      { symbol: 'ETH',      rsi: noSig,              bb: noSig,            change: findC('ETH')?.price_change_percentage_24h },
-      { symbol: 'NASDAQ',   rsi: rsiSig(nasdaqRSI),  bb: bbSig(nasdaqBB),  change: null },
-      { symbol: 'NVDA',     rsi: noSig,              bb: noSig,            change: findS('NVDA')?.change },
-      { symbol: '삼성전자', rsi: noSig,              bb: noSig,            change: findK('005930')?.change },
-      { symbol: 'SOL',      rsi: noSig,              bb: noSig,            change: findC('SOL')?.price_change_percentage_24h },
+      { symbol: 'BTC',      rsi: rsiSig(btcRSI),    bb: bbSig(btcBB),    change: findC('BTC')?.price_change_percentage_24h },
+      { symbol: 'ETH',      rsi: chgStatus(findC('ETH')?.price_change_percentage_24h),  bb: { label: '24h 기반', color: 'var(--muted)' }, change: findC('ETH')?.price_change_percentage_24h },
+      { symbol: 'NASDAQ',   rsi: rsiSig(nasdaqRSI),  bb: bbSig(nasdaqBB), change: null },
+      { symbol: 'NVDA',     rsi: chgStatus(findS('NVDA')?.change),    bb: { label: '24h 기반', color: 'var(--muted)' }, change: findS('NVDA')?.change },
+      { symbol: '삼성전자', rsi: chgStatus(findK('005930')?.change), bb: { label: '24h 기반', color: 'var(--muted)' }, change: findK('005930')?.change },
+      { symbol: 'SOL',      rsi: chgStatus(findC('SOL')?.price_change_percentage_24h),  bb: { label: '24h 기반', color: 'var(--muted)' }, change: findC('SOL')?.price_change_percentage_24h },
     ];
   }, [historyData, cryptoData, stockData, krStockData]);
 
   // ── 렌더 ──────────────────────────────────────────────────────
   return (
     <>
+      <Script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" />
       {showLoginModal && (
         <LoginModal onLogin={handleKakaoLogin} onClose={() => setShowLoginModal(false)} />
       )}
@@ -429,6 +632,80 @@ export default function EventDetectionPage() {
       />
 
       <div className={styles.page}>
+
+        {/* ════ Mod 1: Top Signal 카드 3개 ════════════════════ */}
+        {topSignals.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+            {topSignals.map((sig, i) => {
+              const borderColor = getTopCardBorderColor(sig);
+              const rsiVal = sig.category === 'rsi' ? (parseFloat(sig.valueText.replace('RSI ', '')) || 50) : null;
+              const score  = Math.round(100 - (rsiVal || 50));
+
+              return (
+                <div
+                  key={`top-${sig.id}-${i}`}
+                  style={{
+                    background: 'var(--bg2)',
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  {/* 상단: 종목명 + 스파크라인 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: 'var(--text)' }}>
+                        {sig.symbol}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted2)', marginTop: 2 }}>{sig.type}</div>
+                    </div>
+                    <canvas id={`top-signal-${sig.symbol}-${i}`} width={60} height={40} />
+                  </div>
+
+                  {/* 중간: 가격 + 변화율 + 점수 */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      {sig.price != null && (
+                        <div style={{ fontSize: 13, fontFamily: "'DM Mono', monospace", color: 'var(--text)' }}>
+                          {sig.assetType === 'coin' ? '$' : ''}
+                          {Number(sig.price).toLocaleString(sig.assetType === 'coin' ? 'en-US' : 'ko-KR', { maximumFractionDigits: 0 })}
+                        </div>
+                      )}
+                      {sig.change != null && (
+                        <div style={{ fontSize: 12, color: sig.change >= 0 ? '#10d9a0' : '#f05a5a', fontFamily: "'DM Mono', monospace" }}>
+                          {pct(sig.change)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: borderColor }}>
+                      {score}
+                    </div>
+                  </div>
+
+                  {/* 하단: 태그 */}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: 10, background: 'var(--bg3)', border: '1px solid var(--border)',
+                      borderRadius: 4, padding: '2px 6px', color: 'var(--muted2)',
+                      fontFamily: "'DM Mono', monospace",
+                    }}>
+                      {sig.valueText}
+                    </span>
+                    <span style={{
+                      fontSize: 10, background: 'var(--bg3)', border: '1px solid var(--border)',
+                      borderRadius: 4, padding: '2px 6px', color: 'var(--muted2)',
+                    }}>
+                      {sig.assetType === 'coin' ? '코인' : sig.assetType === 'stock' ? '주식' : '코인/주식'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ════ Zone A: 상단 요약 카드 ════════════════════════ */}
         <div className={styles.zoneA}>
@@ -515,12 +792,12 @@ export default function EventDetectionPage() {
                     key={ev.id}
                     id={`ev_${ev.id}`}
                     className={styles.eventCard}
-                    style={{ borderLeft: `3px solid ${SEV_COLOR[ev.severity]}` }}
+                    style={{ borderLeft: `3px solid ${SEV_COLOR[ev.severity] ?? 'var(--border)'}` }}
                   >
                     {/* 상단 메타 */}
                     <div className={styles.eventCardTop}>
-                      <span className={styles.eventSev} style={{ color: SEV_COLOR[ev.severity] }}>
-                        {ev.severity === 'red' ? '🔴' : '🟡'} {timeAgo(ev.detectedAt)}
+                      <span className={styles.eventSev} style={{ color: SEV_COLOR[ev.severity] ?? 'var(--muted)' }}>
+                        {ev.severity === 'red' ? '🔴' : ev.severity === 'green' ? '🟢' : '🟡'} {timeAgo(ev.detectedAt)}
                       </span>
                       <span className={styles.eventAsset}>
                         {ev.assetType === 'coin' ? '코인' : ev.assetType === 'stock' ? '주식' : '코인/주식'}
@@ -533,7 +810,7 @@ export default function EventDetectionPage() {
                       <span className={styles.eventType}>{ev.type}</span>
                     </div>
 
-                    {/* 지표값 + 가격 */}
+                    {/* 지표값 + 가격 + 변화율 */}
                     <div className={styles.eventStats}>
                       <span className={styles.eventValue}>{ev.valueText}</span>
                       {ev.price != null && (
@@ -557,7 +834,7 @@ export default function EventDetectionPage() {
                     </div>
 
                     {/* 연관 종목 */}
-                    {ev.related.length > 0 && (
+                    {ev.related?.length > 0 && (
                       <div className={styles.relatedRow}>
                         <span className={styles.relatedLabel}>→ 연관 종목:</span>
                         {ev.related.map(r => (
@@ -621,7 +898,7 @@ export default function EventDetectionPage() {
                 <thead>
                   <tr>
                     <th>종목</th>
-                    <th>RSI / BB</th>
+                    <th>RSI / 상태</th>
                     <th>24h</th>
                   </tr>
                 </thead>
@@ -631,7 +908,7 @@ export default function EventDetectionPage() {
                       <td className={styles.indSymbol}>{ind.symbol}</td>
                       <td className={styles.indRsiCell}>
                         <div style={{ color: ind.rsi.color }}>{ind.rsi.label}</div>
-                        <div style={{ color: ind.bb.color }}>{ind.bb.label}</div>
+                        <div style={{ color: ind.bb.color, fontSize: 10 }}>{ind.bb.label}</div>
                       </td>
                       <td style={{
                         color: ind.change == null ? 'var(--muted)' : ind.change >= 0 ? '#10d9a0' : '#f05a5a',
