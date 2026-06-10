@@ -2,3 +2,6 @@ application.properties
 application.yml
 backend/sowenixApi/src/main/resources/application.properties
 backend/sowenixDomain/src/main/resources/application.yml
+.idea/
+backend/package.json
+backend/package-lock.json
