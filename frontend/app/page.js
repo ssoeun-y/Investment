@@ -599,7 +599,12 @@ export default function Home() {
 
         <div style={{ marginTop: 16 }}>
           <div className={styles.zoneLabel}>AI 인사이트</div>
-          <AIInsight />
+          <AIInsight
+            cryptoData={cryptoData}
+            stockData={stockData}
+            fearGreed={fearGreed}
+            kospiData={kospiData}
+          />
         </div>
 
         {/* ══ 포트폴리오 ════════════════════════════════════════════ */}
